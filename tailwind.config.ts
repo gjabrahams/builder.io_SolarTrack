@@ -57,6 +57,12 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        solar: {
+          sun: "hsl(var(--solar-sun))",
+          sky: "hsl(var(--solar-sky))",
+          energy: "hsl(var(--solar-energy))",
+          leaf: "hsl(var(--solar-leaf))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
