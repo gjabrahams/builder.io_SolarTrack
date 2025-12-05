@@ -468,7 +468,7 @@ export default function Index() {
             </div>
 
             {entries.length > 0 && (
-              <MonthlyCalendar entries={entries} initialMonth={getMonthName(Array.from(monthlyData.keys())[0] || "")} />
+              <MonthlyCalendar entries={entries} initialMonth={Array.from(monthlyData.keys())[0]} />
             )}
 
             {monthlyData.size > 0 && (
