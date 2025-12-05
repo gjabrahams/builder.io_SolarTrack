@@ -467,6 +467,10 @@ export default function Index() {
               </Card>
             </div>
 
+            {entries.length > 0 && (
+              <MonthlyCalendar entries={entries} initialMonth={getMonthName(Array.from(monthlyData.keys())[0] || "")} />
+            )}
+
             {monthlyData.size > 0 && (
               <Card>
                 <CardHeader>
