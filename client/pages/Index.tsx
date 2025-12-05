@@ -235,48 +235,147 @@ export default function Index() {
 
           {/* Daily Input Tab */}
           <TabsContent value="input" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-solar-sun" />
-                  Daily Energy Input
-                </CardTitle>
-                <CardDescription>Record your daily solar energy generation</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleAddDailyEntry} className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Date</label>
-                      <Input
-                        type="date"
-                        value={dailyDate}
-                        onChange={(e) => setDailyDate(e.target.value)}
-                      />
+            {!rangeMode ? (
+              <>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-solar-sun" />
+                      Single Day Input
+                    </CardTitle>
+                    <CardDescription>Record your daily solar energy generation</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleAddDailyEntry} className="space-y-4">
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Date</label>
+                          <Input
+                            type="date"
+                            value={dailyDate}
+                            onChange={(e) => setDailyDate(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Energy (kWh)</label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={dailyKWh}
+                            onChange={(e) => setDailyKWh(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <Button
+                            type="submit"
+                            className="w-full gap-2 bg-solar-sun hover:bg-solar-sun/90"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Add Entry
+                          </Button>
+                        </div>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-solar-sky/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-solar-sky" />
+                      Multiple Days Input
+                    </CardTitle>
+                    <CardDescription>Enter data for a range of dates at once</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleInitializeRangeMode} className="space-y-4">
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Start Date</label>
+                          <Input
+                            type="date"
+                            value={rangeStart}
+                            onChange={(e) => setRangeStart(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">End Date</label>
+                          <Input
+                            type="date"
+                            value={rangeEnd}
+                            onChange={(e) => setRangeEnd(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <Button
+                            type="submit"
+                            className="w-full gap-2 bg-solar-sky hover:bg-solar-sky/90"
+                          >
+                            <Calendar className="h-4 w-4" />
+                            Continue
+                          </Button>
+                        </div>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-solar-sky" />
+                    Enter Daily Values
+                  </CardTitle>
+                  <CardDescription>
+                    {rangeStart} to {rangeEnd} ({rangeDates.length} days)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmitRangeEntries} className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {rangeDates.map((date) => (
+                        <div key={date} className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">
+                            {new Date(date).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="kWh"
+                            value={rangeEntries[date] || ""}
+                            onChange={(e) => handleRangeEntryChange(date, e.target.value)}
+                            className="text-center"
+                          />
+                        </div>
+                      ))}
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Energy (kWh)</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={dailyKWh}
-                        onChange={(e) => setDailyKWh(e.target.value)}
-                      />
-                    </div>
-                    <div className="flex items-end">
+
+                    <div className="flex gap-2 pt-4">
                       <Button
                         type="submit"
-                        className="w-full gap-2 bg-solar-sun hover:bg-solar-sun/90"
+                        className="flex-1 gap-2 bg-solar-energy hover:bg-solar-energy/90"
                       >
                         <Plus className="h-4 w-4" />
-                        Add Entry
+                        Save All Entries
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleCancelRangeMode}
+                        className="flex-1"
+                      >
+                        Cancel
                       </Button>
                     </div>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Recent Entries */}
             {entries.length > 0 && (
