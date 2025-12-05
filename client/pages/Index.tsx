@@ -111,6 +111,83 @@ export default function Index() {
 
   const monthlyData = calculateMonthlyData(entries);
 
+  const getDatesBetween = (startStr: string, endStr: string): string[] => {
+    const start = parseDate(startStr);
+    const end = parseDate(endStr);
+    const dates: string[] = [];
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dates.push(formatDate(new Date(d)));
+    }
+
+    return dates;
+  };
+
+  const handleInitializeRangeMode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rangeStart || !rangeEnd || parseDate(rangeStart) > parseDate(rangeEnd)) {
+      alert("Please enter valid dates with start date before end date");
+      return;
+    }
+
+    const dates = getDatesBetween(rangeStart, rangeEnd);
+    const initialEntries: { [date: string]: string } = {};
+    dates.forEach((date) => {
+      const existing = entries.find((e) => e.date === date);
+      initialEntries[date] = existing ? existing.kWh.toString() : "";
+    });
+
+    setRangeEntries(initialEntries);
+    setRangeMode(true);
+  };
+
+  const handleRangeEntryChange = (date: string, value: string) => {
+    setRangeEntries({ ...rangeEntries, [date]: value });
+  };
+
+  const handleSubmitRangeEntries = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newEntries: DailyEntry[] = [];
+
+    Object.entries(rangeEntries).forEach(([date, kWhStr]) => {
+      const kWh = parseFloat(kWhStr);
+      if (kWh > 0) {
+        newEntries.push({ date, kWh });
+      }
+    });
+
+    if (newEntries.length === 0) {
+      alert("Please enter at least one positive kWh value");
+      return;
+    }
+
+    const merged = [...entries];
+    newEntries.forEach((newEntry) => {
+      const existingIndex = merged.findIndex((e) => e.date === newEntry.date);
+      if (existingIndex >= 0) {
+        merged[existingIndex] = newEntry;
+      } else {
+        merged.push(newEntry);
+      }
+    });
+
+    merged.sort((a, b) => a.date.localeCompare(b.date));
+    setEntries(merged);
+    setRangeMode(false);
+    setRangeStart(formatDate(new Date()));
+    setRangeEnd(formatDate(new Date()));
+    setRangeEntries({});
+  };
+
+  const handleCancelRangeMode = () => {
+    setRangeMode(false);
+    setRangeStart(formatDate(new Date()));
+    setRangeEnd(formatDate(new Date()));
+    setRangeEntries({});
+  };
+
+  const rangeDates = rangeMode ? getDatesBetween(rangeStart, rangeEnd) : [];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-solar-sky/10 via-background to-solar-energy/5">
       {/* Header */}
