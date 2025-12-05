@@ -22,6 +22,12 @@ export default function Index() {
   const [dailyKWh, setDailyKWh] = useState("");
   const [activeTab, setActiveTab] = useState("input");
 
+  // Bulk entry mode state
+  const [rangeMode, setRangeMode] = useState(false);
+  const [rangeStart, setRangeStart] = useState(formatDate(new Date()));
+  const [rangeEnd, setRangeEnd] = useState(formatDate(new Date()));
+  const [rangeEntries, setRangeEntries] = useState<{ [date: string]: string }>({});
+
   // Billing cycle form state
   const [billingMonth, setBillingMonth] = useState(formatDate(new Date()).slice(0, 7));
   const [billingStart, setBillingStart] = useState(formatDate(new Date()));
