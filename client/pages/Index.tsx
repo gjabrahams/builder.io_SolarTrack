@@ -10,6 +10,7 @@ import {
   BillingCycle,
   MunicipalRate,
   TierBreakdown,
+  BillingCycleAnalysis,
   formatDate,
   getMonthKey,
   getMonthName,
@@ -17,6 +18,7 @@ import {
   calculateBillingData,
   calculateSavings,
   calculateTierBreakdown,
+  calculateBillingCycleAnalysis,
   parseDate,
 } from "@/lib/solarCalculations";
 
