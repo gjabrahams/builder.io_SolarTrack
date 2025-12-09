@@ -64,7 +64,16 @@ export default function Index() {
     }
     if (savedCycles) {
       try {
-        setBillingCycles(JSON.parse(savedCycles));
+        const cycles = JSON.parse(savedCycles);
+        setBillingCycles(cycles);
+        // Initialize grid usage input state from saved data
+        const gridInput: { [cycleId: string]: string } = {};
+        cycles.forEach((cycle: BillingCycle) => {
+          if (cycle.actualGridKWh) {
+            gridInput[cycle.id] = cycle.actualGridKWh.toString();
+          }
+        });
+        setGridUsageInput(gridInput);
       } catch (e) {
         console.error("Failed to parse billingCycles:", e);
       }
