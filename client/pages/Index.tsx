@@ -756,6 +756,7 @@ export default function Index() {
               <div className="grid gap-4 sm:grid-cols-2">
                 {billingCycles.map((cycle) => {
                   const billingData = calculateBillingData(entries, cycle.startDate, cycle.endDate);
+                  const tierBreakdown = calculateTierBreakdown(billingData.totalKWh, municipalRates);
                   return (
                     <Card key={cycle.id} className="border-solar-sky/50">
                       <CardHeader>
@@ -792,6 +793,40 @@ export default function Index() {
                             />
                           </div>
                         </div>
+
+                        {municipalRates.length > 0 && (
+                          <div className="grid grid-cols-2 gap-3 border-t border-border pt-4">
+                            <div className="rounded-lg bg-muted/50 p-3 text-sm">
+                              <p className="text-muted-foreground">Tier 1 (0-350 kWh)</p>
+                              <p className="font-semibold">
+                                {tierBreakdown.tier1KWh.toFixed(1)} kWh
+                              </p>
+                              <p className="text-solar-sun font-bold">
+                                ${tierBreakdown.tier1Cost.toFixed(2)}
+                              </p>
+                            </div>
+                            {tierBreakdown.tier2KWh > 0 && (
+                              <div className="rounded-lg bg-muted/50 p-3 text-sm">
+                                <p className="text-muted-foreground">Tier 2 (350+ kWh)</p>
+                                <p className="font-semibold">
+                                  {tierBreakdown.tier2KWh.toFixed(1)} kWh
+                                </p>
+                                <p className="text-solar-sky font-bold">
+                                  ${tierBreakdown.tier2Cost.toFixed(2)}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {municipalRates.length > 0 && (
+                          <div className="border-t border-border pt-4">
+                            <p className="text-xs text-muted-foreground mb-2">Total Estimated Savings</p>
+                            <p className="text-3xl font-bold text-solar-energy">
+                              ${tierBreakdown.totalCost.toFixed(2)}
+                            </p>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   );
