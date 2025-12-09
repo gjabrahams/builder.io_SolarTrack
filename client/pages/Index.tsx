@@ -770,6 +770,203 @@ export default function Index() {
               </Card>
             )}
           </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sun className="h-5 w-5 text-solar-sun" />
+                  Municipal Electricity Rates
+                </CardTitle>
+                <CardDescription>
+                  Set tiered rates for your municipal electricity grid. Savings are calculated by
+                  multiplying your solar generation by these rates.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAddMunicipalRate} className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Tier Number</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        step="1"
+                        placeholder="1"
+                        value={rateTier}
+                        onChange={(e) => setRateTier(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Max kWh</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="100"
+                        value={rateMaxKWh}
+                        onChange={(e) => setRateMaxKWh(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Rate per kWh</label>
+                      <Input
+                        type="number"
+                        step="0.001"
+                        placeholder="0.00"
+                        value={ratePerKWh}
+                        onChange={(e) => setRatePerKWh(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        type="submit"
+                        className="w-full gap-2 bg-solar-sun hover:bg-solar-sun/90"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Rate
+                      </Button>
+                    </div>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
+            {municipalRates.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Active Rate Tiers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {municipalRates.map((rate) => (
+                      <div
+                        key={rate.id}
+                        className="flex items-center justify-between rounded-lg border border-border bg-card p-4 hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-foreground">Tier {rate.tier}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Up to {rate.maxKWh} kWh @ ${rate.ratePerKWh.toFixed(3)}/kWh
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteMunicipalRate(rate.id)}
+                          className="text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {municipalRates.length > 0 && billingCycles.length > 0 && (
+              <Card className="border-solar-energy/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-solar-energy" />
+                    Estimated Savings by Billing Cycle
+                  </CardTitle>
+                  <CardDescription>
+                    Savings calculated as: Solar Generation (kWh) × Applicable Tier Rate ($/kWh)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {billingCycles.map((cycle) => {
+                      const billingData = calculateBillingData(
+                        entries,
+                        cycle.startDate,
+                        cycle.endDate
+                      );
+                      const savings = calculateSavings(billingData.totalKWh, municipalRates);
+                      return (
+                        <div
+                          key={cycle.id}
+                          className="rounded-lg border border-border bg-card p-4 hover:border-primary/50 transition-colors"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h3 className="font-semibold text-foreground">
+                                {getMonthName(cycle.month)}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                {cycle.startDate} to {cycle.endDate}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-3xl font-bold text-solar-energy">
+                                ${savings.toFixed(2)}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {billingData.totalKWh.toFixed(1)} kWh generated
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-4 text-sm pt-3 border-t border-border">
+                            <div>
+                              <p className="text-muted-foreground">Total kWh</p>
+                              <p className="font-semibold">{billingData.totalKWh.toFixed(1)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Avg Rate</p>
+                              <p className="font-semibold">
+                                ${municipalRates.length > 0 ? (savings / billingData.totalKWh).toFixed(3) : "0.000"}/kWh
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Days</p>
+                              <p className="font-semibold">{billingData.days}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {municipalRates.length === 0 && (
+              <Card className="border-dashed">
+                <CardHeader>
+                  <CardTitle className="text-lg">No Municipal Rates Set</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Add municipal electricity rates above to calculate your potential savings from
+                    solar generation.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {billingCycles.length === 0 && municipalRates.length > 0 && (
+              <Card className="border-dashed">
+                <CardHeader>
+                  <CardTitle className="text-lg">No Billing Cycles Set</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Create billing cycles in the "Billing" tab to see estimated savings for your
+                    solar generation.
+                  </p>
+                  <Button
+                    onClick={() => setActiveTab("billing")}
+                    className="mt-4 gap-2 bg-solar-sky hover:bg-solar-sky/90"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Set Up Billing Cycles
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
         </Tabs>
       </main>
 
