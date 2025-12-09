@@ -10,6 +10,13 @@ export interface BillingCycle {
   endDate: string;
 }
 
+export interface MunicipalRate {
+  id: string;
+  tier: number;
+  maxKWh: number;
+  ratePerKWh: number;
+}
+
 export interface MonthData {
   month: string;
   year: number;
@@ -114,4 +121,27 @@ export function getDaysSince(dateStr: string): number {
 
 export function getMonthDays(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
+}
+
+export function calculateSavings(
+  solarKWh: number,
+  municipalRates: MunicipalRate[]
+): number {
+  if (solarKWh <= 0 || municipalRates.length === 0) {
+    return 0;
+  }
+
+  const sortedRates = [...municipalRates].sort((a, b) => a.tier - b.tier);
+  let remainingKWh = solarKWh;
+  let totalSavings = 0;
+
+  for (const rate of sortedRates) {
+    if (remainingKWh <= 0) break;
+
+    const kWhForThisTier = Math.min(remainingKWh, rate.maxKWh);
+    totalSavings += kWhForThisTier * rate.ratePerKWh;
+    remainingKWh -= kWhForThisTier;
+  }
+
+  return totalSavings;
 }
