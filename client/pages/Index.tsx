@@ -8,11 +8,13 @@ import { MonthlyCalendar } from "@/components/MonthlyCalendar";
 import {
   DailyEntry,
   BillingCycle,
+  MunicipalRate,
   formatDate,
   getMonthKey,
   getMonthName,
   calculateMonthlyData,
   calculateBillingData,
+  calculateSavings,
   parseDate,
 } from "@/lib/solarCalculations";
 
