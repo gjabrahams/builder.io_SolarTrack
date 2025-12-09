@@ -469,6 +469,129 @@ export default function Index() {
 
           {/* Daily Input Tab */}
           <TabsContent value="input" className="space-y-6">
+            {/* CSV Import Section */}
+            {!importMode ? (
+              <Card className="border-solar-sun/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-solar-sun" />
+                    Import Historical Data
+                  </CardTitle>
+                  <CardDescription>Import solar generation data from a CSV file or paste tab-separated values</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="text-sm font-medium block mb-2">CSV File Upload</label>
+                        <input
+                          type="file"
+                          accept=".csv,.txt"
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              handleImportCSVFile(e.target.files[0]);
+                              e.target.value = "";
+                            }
+                          }}
+                          className="block w-full text-sm border border-border rounded-md p-2"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Format: Date (DD-MMM-YYYY), Solar kWh, optional Grid kWh
+                        </p>
+                      </div>
+                      <div>
+                        <Button
+                          onClick={() => setImportMode(true)}
+                          className="w-full gap-2 bg-solar-sun hover:bg-solar-sun/90"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Paste Data
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Paste tab or space-separated values
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Import Consecutive Daily Data</CardTitle>
+                  <CardDescription>Paste your data and select the start date</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleImportCSV} className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Start Date</label>
+                      <Input
+                        type="date"
+                        value={importStartDate}
+                        onChange={(e) => setImportStartDate(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Data (tab or space separated)</label>
+                      <textarea
+                        className="w-full h-24 border border-border rounded-md p-2 text-sm font-mono"
+                        placeholder="14.5	10.0	8.5	7.4	3.9..."
+                        value={importData}
+                        onChange={(e) => setImportData(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Paste values separated by tabs, spaces, or commas. Each value represents one day starting from the selected date.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Data Type</label>
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="dataType"
+                            checked={importSolarOnly}
+                            onChange={() => setImportSolarOnly(true)}
+                          />
+                          <span className="text-sm">Solar Generation Only</span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="dataType"
+                            checked={!importSolarOnly}
+                            onChange={() => setImportSolarOnly(false)}
+                            disabled
+                          />
+                          <span className="text-sm text-muted-foreground">Solar + Grid (Coming Soon)</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-4">
+                      <Button
+                        type="submit"
+                        className="flex-1 gap-2 bg-solar-energy hover:bg-solar-energy/90"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Import Data
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setImportMode(false)}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
+
             {!rangeMode ? (
               <>
                 <Card>
