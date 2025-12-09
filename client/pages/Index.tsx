@@ -48,17 +48,34 @@ export default function Index() {
     const savedCycles = localStorage.getItem("billingCycles");
     const savedRates = localStorage.getItem("municipalRates");
 
-    if (savedEntries) setEntries(JSON.parse(savedEntries));
-    if (savedCycles) setBillingCycles(JSON.parse(savedCycles));
+    if (savedEntries) {
+      try {
+        setEntries(JSON.parse(savedEntries));
+      } catch (e) {
+        console.error("Failed to parse solarEntries:", e);
+      }
+    }
+    if (savedCycles) {
+      try {
+        setBillingCycles(JSON.parse(savedCycles));
+      } catch (e) {
+        console.error("Failed to parse billingCycles:", e);
+      }
+    }
     if (savedRates) {
-      const rates = JSON.parse(savedRates);
-      const normalizedRates = rates.map((r: any) => ({
-        id: r.id,
-        tier: typeof r.tier === "string" ? parseInt(r.tier) : r.tier,
-        maxKWh: typeof r.maxKWh === "string" ? parseFloat(r.maxKWh) : r.maxKWh,
-        ratePerKWh: typeof r.ratePerKWh === "string" ? parseFloat(r.ratePerKWh) : r.ratePerKWh,
-      }));
-      setMunicipalRates(normalizedRates);
+      try {
+        const rates = JSON.parse(savedRates);
+        const normalizedRates = rates.map((r: any) => ({
+          id: String(r.id),
+          tier: Number(r.tier),
+          maxKWh: Number(r.maxKWh),
+          ratePerKWh: Number(r.ratePerKWh),
+        }));
+        setMunicipalRates(normalizedRates);
+      } catch (e) {
+        console.error("Failed to parse or normalize municipalRates:", e);
+        localStorage.removeItem("municipalRates");
+      }
     }
   }, []);
 
