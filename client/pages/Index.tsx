@@ -62,6 +62,10 @@ export default function Index() {
     localStorage.setItem("billingCycles", JSON.stringify(billingCycles));
   }, [billingCycles]);
 
+  useEffect(() => {
+    localStorage.setItem("municipalRates", JSON.stringify(municipalRates));
+  }, [municipalRates]);
+
   const handleAddDailyEntry = (e: React.FormEvent) => {
     e.preventDefault();
     if (!dailyDate || !dailyKWh || parseFloat(dailyKWh) <= 0) {
