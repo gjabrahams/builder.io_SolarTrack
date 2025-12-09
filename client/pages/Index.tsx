@@ -758,6 +758,67 @@ export default function Index() {
                               )}
                             </div>
                           )}
+
+                          {/* Grid Usage Input */}
+                          <div className="border-t border-border pt-3 mt-3">
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Actual Grid Usage (kWh)</label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="Enter actual grid consumption"
+                                value={gridUsageInput[cycle.id] ?? (cycle.actualGridKWh?.toString() ?? "")}
+                                onChange={(e) => handleUpdateGridUsage(cycle.id, e.target.value)}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Analysis when grid usage is entered */}
+                          {cycle.actualGridKWh && municipalRates.length > 0 && (
+                            (() => {
+                              const analysis = calculateBillingCycleAnalysis(
+                                billingData.totalKWh,
+                                cycle.actualGridKWh,
+                                municipalRates
+                              );
+                              return (
+                                <div className="border-t border-border pt-3 mt-3 space-y-3">
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div className="rounded-lg bg-solar-sun/10 p-3">
+                                      <p className="text-xs text-muted-foreground">Solar Offset</p>
+                                      <p className="font-semibold">{analysis.offsetKWh.toFixed(1)} kWh</p>
+                                    </div>
+                                    <div className="rounded-lg bg-muted p-3">
+                                      <p className="text-xs text-muted-foreground">Remaining Grid</p>
+                                      <p className="font-semibold">{analysis.remainingGridKWh.toFixed(1)} kWh</p>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3">
+                                      <p className="text-xs text-muted-foreground">Solar Savings</p>
+                                      <p className="font-bold text-green-600">
+                                        ${analysis.solarSavings.toFixed(2)}
+                                      </p>
+                                    </div>
+                                    <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3">
+                                      <p className="text-xs text-muted-foreground">Grid Cost</p>
+                                      <p className="font-bold text-red-600">
+                                        ${analysis.gridCost.toFixed(2)}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="rounded-lg bg-solar-energy/10 border border-solar-energy/30 p-3 text-center">
+                                    <p className="text-xs text-muted-foreground mb-1">Net Savings</p>
+                                    <p className={`text-2xl font-bold ${analysis.netSavings >= 0 ? "text-solar-energy" : "text-destructive"}`}>
+                                      ${analysis.netSavings.toFixed(2)}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })()
+                          )}
                         </div>
                       );
                     })}
