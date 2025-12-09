@@ -276,7 +276,7 @@ export default function Index() {
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto">
             <TabsTrigger value="input" className="gap-2">
               <Zap className="h-4 w-4" />
               <span className="hidden sm:inline">Input</span>
@@ -292,6 +292,10 @@ export default function Index() {
             <TabsTrigger value="summary" className="gap-2">
               <TrendingUp className="h-4 w-4" />
               <span className="hidden sm:inline">Summary</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="gap-2">
+              <Sun className="h-4 w-4" />
+              <span className="hidden sm:inline">Settings</span>
             </TabsTrigger>
           </TabsList>
 
