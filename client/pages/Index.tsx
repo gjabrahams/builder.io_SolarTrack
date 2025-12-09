@@ -124,6 +124,53 @@ export default function Index() {
     setBillingCycles(billingCycles.filter((c) => c.id !== id));
   };
 
+  const handleAddMunicipalRate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rateTier || !rateMaxKWh || !ratePerKWh) {
+      alert("Please fill in all rate fields");
+      return;
+    }
+
+    const tier = parseInt(rateTier);
+    const maxKWh = parseFloat(rateMaxKWh);
+    const perKWh = parseFloat(ratePerKWh);
+
+    if (tier <= 0 || maxKWh <= 0 || perKWh < 0) {
+      alert("Please enter valid positive values");
+      return;
+    }
+
+    // Check if tier already exists
+    if (municipalRates.some((r) => r.tier === tier)) {
+      alert("This tier already exists. Please edit the existing tier instead.");
+      return;
+    }
+
+    const newRate: MunicipalRate = {
+      id: `${Date.now()}`,
+      tier,
+      maxKWh,
+      ratePerKWh,
+    };
+
+    setMunicipalRates([...municipalRates, newRate].sort((a, b) => a.tier - b.tier));
+    setRateTier("");
+    setRateMaxKWh("");
+    setRatePerKWh("");
+  };
+
+  const handleDeleteMunicipalRate = (id: string) => {
+    setMunicipalRates(municipalRates.filter((r) => r.id !== id));
+  };
+
+  const handleEditMunicipalRate = (id: string, updates: Partial<MunicipalRate>) => {
+    setMunicipalRates(
+      municipalRates.map((r) =>
+        r.id === id ? { ...r, ...updates } : r
+      )
+    );
+  };
+
   const monthlyData = calculateMonthlyData(entries);
 
   const getDatesBetween = (startStr: string, endStr: string): string[] => {
