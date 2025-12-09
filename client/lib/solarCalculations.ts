@@ -8,6 +8,7 @@ export interface BillingCycle {
   month: string;
   startDate: string;
   endDate: string;
+  actualGridKWh?: number;
 }
 
 export interface MunicipalRate {
