@@ -49,6 +49,12 @@ export default function Index() {
   // Grid usage tracking state
   const [gridUsageInput, setGridUsageInput] = useState<{ [cycleId: string]: string }>({});
 
+  // CSV import state
+  const [importMode, setImportMode] = useState(false);
+  const [importStartDate, setImportStartDate] = useState(formatDate(new Date()));
+  const [importData, setImportData] = useState("");
+  const [importSolarOnly, setImportSolarOnly] = useState(true);
+
   // Load from localStorage
   useEffect(() => {
     const savedEntries = localStorage.getItem("solarEntries");
