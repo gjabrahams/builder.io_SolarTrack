@@ -50,7 +50,16 @@ export default function Index() {
 
     if (savedEntries) setEntries(JSON.parse(savedEntries));
     if (savedCycles) setBillingCycles(JSON.parse(savedCycles));
-    if (savedRates) setMunicipalRates(JSON.parse(savedRates));
+    if (savedRates) {
+      const rates = JSON.parse(savedRates);
+      const normalizedRates = rates.map((r: any) => ({
+        id: r.id,
+        tier: typeof r.tier === "string" ? parseInt(r.tier) : r.tier,
+        maxKWh: typeof r.maxKWh === "string" ? parseFloat(r.maxKWh) : r.maxKWh,
+        ratePerKWh: typeof r.ratePerKWh === "string" ? parseFloat(r.ratePerKWh) : r.ratePerKWh,
+      }));
+      setMunicipalRates(normalizedRates);
+    }
   }, []);
 
   // Save to localStorage
