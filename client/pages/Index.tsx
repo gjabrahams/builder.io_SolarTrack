@@ -46,6 +46,9 @@ export default function Index() {
   const [rateMaxKWh, setRateMaxKWh] = useState("");
   const [ratePerKWh, setRatePerKWh] = useState("");
 
+  // Grid usage tracking state
+  const [gridUsageInput, setGridUsageInput] = useState<{ [cycleId: string]: string }>({});
+
   // Load from localStorage
   useEffect(() => {
     const savedEntries = localStorage.getItem("solarEntries");
