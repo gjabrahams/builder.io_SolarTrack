@@ -159,7 +159,7 @@ export default function Index() {
       id: `${Date.now()}`,
       tier,
       maxKWh,
-      ratePerKWh,
+      ratePerKWh: perKWh,
     };
 
     setMunicipalRates([...municipalRates, newRate].sort((a, b) => a.tier - b.tier));
