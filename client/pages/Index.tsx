@@ -46,9 +46,11 @@ export default function Index() {
   useEffect(() => {
     const savedEntries = localStorage.getItem("solarEntries");
     const savedCycles = localStorage.getItem("billingCycles");
+    const savedRates = localStorage.getItem("municipalRates");
 
     if (savedEntries) setEntries(JSON.parse(savedEntries));
     if (savedCycles) setBillingCycles(JSON.parse(savedCycles));
+    if (savedRates) setMunicipalRates(JSON.parse(savedRates));
   }, []);
 
   // Save to localStorage
