@@ -204,6 +204,18 @@ export default function Index() {
     );
   };
 
+  const handleUpdateGridUsage = (cycleId: string, gridKWh: string) => {
+    const cycle = billingCycles.find((c) => c.id === cycleId);
+    if (cycle) {
+      const value = gridKWh === "" ? undefined : parseFloat(gridKWh);
+      const updated = billingCycles.map((c) =>
+        c.id === cycleId ? { ...c, actualGridKWh: value } : c
+      );
+      setBillingCycles(updated);
+    }
+    setGridUsageInput({ ...gridUsageInput, [cycleId]: gridKWh });
+  };
+
   const monthlyData = calculateMonthlyData(entries);
 
   const getDatesBetween = (startStr: string, endStr: string): string[] => {
