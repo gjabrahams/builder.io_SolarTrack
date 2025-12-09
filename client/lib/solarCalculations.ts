@@ -197,11 +197,9 @@ export function calculateGridCost(
 export interface BillingCycleAnalysis {
   solarGeneration: number;
   actualGridUsage: number;
-  offsetKWh: number;
-  remainingGridKWh: number;
-  solarSavings: number;
-  gridCost: number;
-  netSavings: number;
+  totalGridCost: number;
+  solarOffset: number;
+  amountOwed: number;
 }
 
 export function calculateBillingCycleAnalysis(
@@ -209,32 +207,30 @@ export function calculateBillingCycleAnalysis(
   actualGridKWh: number | undefined,
   municipalRates: MunicipalRate[]
 ): BillingCycleAnalysis {
-  const solarSavings = calculateSavings(solarKWh, municipalRates);
-
   if (!actualGridKWh || actualGridKWh <= 0) {
     return {
       solarGeneration: solarKWh,
-      actualGridUsage: actualGridKWh || 0,
-      offsetKWh: 0,
-      remainingGridKWh: 0,
-      solarSavings,
-      gridCost: 0,
-      netSavings: solarSavings,
+      actualGridUsage: 0,
+      totalGridCost: 0,
+      solarOffset: calculateSavings(solarKWh, municipalRates),
+      amountOwed: 0,
     };
   }
 
-  const offsetKWh = Math.min(solarKWh, actualGridKWh);
-  const remainingGridKWh = actualGridKWh - offsetKWh;
-  const gridCost = calculateGridCost(remainingGridKWh, municipalRates);
-  const netSavings = solarSavings - gridCost;
+  // Step 1: Calculate the total cost of actual grid usage
+  const totalGridCost = calculateGridCost(actualGridKWh, municipalRates);
+
+  // Step 2: Calculate how much solar offsets from the grid bill
+  const solarOffset = calculateSavings(Math.min(solarKWh, actualGridKWh), municipalRates);
+
+  // Step 3: Calculate what you actually owe (grid cost - solar offset)
+  const amountOwed = Math.max(0, totalGridCost - solarOffset);
 
   return {
     solarGeneration: solarKWh,
     actualGridUsage: actualGridKWh,
-    offsetKWh,
-    remainingGridKWh,
-    solarSavings,
-    gridCost,
-    netSavings,
+    totalGridCost,
+    solarOffset,
+    amountOwed,
   };
 }
