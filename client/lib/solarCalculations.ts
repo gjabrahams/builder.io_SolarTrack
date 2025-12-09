@@ -181,3 +181,60 @@ export function calculateSavings(
   const breakdown = calculateTierBreakdown(solarKWh, municipalRates);
   return breakdown.totalCost;
 }
+
+export function calculateGridCost(
+  gridKWh: number,
+  municipalRates: MunicipalRate[]
+): number {
+  if (gridKWh <= 0 || municipalRates.length === 0) {
+    return 0;
+  }
+
+  const breakdown = calculateTierBreakdown(gridKWh, municipalRates);
+  return breakdown.totalCost;
+}
+
+export interface BillingCycleAnalysis {
+  solarGeneration: number;
+  actualGridUsage: number;
+  offsetKWh: number;
+  remainingGridKWh: number;
+  solarSavings: number;
+  gridCost: number;
+  netSavings: number;
+}
+
+export function calculateBillingCycleAnalysis(
+  solarKWh: number,
+  actualGridKWh: number | undefined,
+  municipalRates: MunicipalRate[]
+): BillingCycleAnalysis {
+  const solarSavings = calculateSavings(solarKWh, municipalRates);
+
+  if (!actualGridKWh || actualGridKWh <= 0) {
+    return {
+      solarGeneration: solarKWh,
+      actualGridUsage: actualGridKWh || 0,
+      offsetKWh: 0,
+      remainingGridKWh: 0,
+      solarSavings,
+      gridCost: 0,
+      netSavings: solarSavings,
+    };
+  }
+
+  const offsetKWh = Math.min(solarKWh, actualGridKWh);
+  const remainingGridKWh = actualGridKWh - offsetKWh;
+  const gridCost = calculateGridCost(remainingGridKWh, municipalRates);
+  const netSavings = solarSavings - gridCost;
+
+  return {
+    solarGeneration: solarKWh,
+    actualGridUsage: actualGridKWh,
+    offsetKWh,
+    remainingGridKWh,
+    solarSavings,
+    gridCost,
+    netSavings,
+  };
+}
