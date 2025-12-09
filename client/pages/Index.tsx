@@ -231,6 +231,114 @@ export default function Index() {
     setGridUsageInput({ ...gridUsageInput, [cycleId]: gridKWh });
   };
 
+  const handleImportCSV = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importData.trim() || !importStartDate) {
+      alert("Please enter data and select a start date");
+      return;
+    }
+
+    // Parse the input data (tab or space separated)
+    const values = importData
+      .trim()
+      .split(/[\t\s,]+/)
+      .map((v) => parseFloat(v.trim()))
+      .filter((v) => !isNaN(v));
+
+    if (values.length === 0) {
+      alert("No valid numbers found in the data");
+      return;
+    }
+
+    const startDate = parseDate(importStartDate);
+    const newEntries: DailyEntry[] = [];
+
+    values.forEach((value, index) => {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + index);
+      const dateStr = formatDate(date);
+
+      if (importSolarOnly) {
+        // Solar generation import
+        newEntries.push({
+          date: dateStr,
+          kWh: value,
+        });
+      }
+    });
+
+    // Merge with existing entries
+    const merged = [...entries];
+    newEntries.forEach((newEntry) => {
+      const existingIndex = merged.findIndex((e) => e.date === newEntry.date);
+      if (existingIndex >= 0) {
+        merged[existingIndex] = newEntry;
+      } else {
+        merged.push(newEntry);
+      }
+    });
+
+    merged.sort((a, b) => a.date.localeCompare(b.date));
+    setEntries(merged);
+
+    // Reset import form
+    setImportMode(false);
+    setImportData("");
+    setImportStartDate(formatDate(new Date()));
+    alert(`Imported ${newEntries.length} solar generation records`);
+  };
+
+  const handleImportCSVFile = async (file: File) => {
+    const text = await file.text();
+    const lines = text.trim().split("\n");
+
+    const newEntries: DailyEntry[] = [];
+
+    lines.forEach((line) => {
+      const columns = line.split(/[,\t]+/).map((v) => v.trim());
+      if (columns.length >= 2) {
+        try {
+          // Parse date in DD-MMM-YYYY format
+          const dateStr = columns[0];
+          const date = new Date(dateStr + " 00:00:00");
+          if (!isNaN(date.getTime())) {
+            const formattedDate = formatDate(date);
+            const solarKWh = parseFloat(columns[1]);
+
+            if (!isNaN(solarKWh) && solarKWh > 0) {
+              newEntries.push({
+                date: formattedDate,
+                kWh: solarKWh,
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error parsing line:", line, error);
+        }
+      }
+    });
+
+    if (newEntries.length === 0) {
+      alert("No valid data found in the file");
+      return;
+    }
+
+    // Merge with existing entries
+    const merged = [...entries];
+    newEntries.forEach((newEntry) => {
+      const existingIndex = merged.findIndex((e) => e.date === newEntry.date);
+      if (existingIndex >= 0) {
+        merged[existingIndex] = newEntry;
+      } else {
+        merged.push(newEntry);
+      }
+    });
+
+    merged.sort((a, b) => a.date.localeCompare(b.date));
+    setEntries(merged);
+    alert(`Imported ${newEntries.length} solar generation records from file`);
+  };
+
   const monthlyData = calculateMonthlyData(entries);
 
   const getDatesBetween = (startStr: string, endStr: string): string[] => {
