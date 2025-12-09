@@ -835,6 +835,10 @@ export default function Index() {
                 {billingCycles.map((cycle) => {
                   const billingData = calculateBillingData(entries, cycle.startDate, cycle.endDate);
                   const tierBreakdown = calculateTierBreakdown(billingData.totalKWh, municipalRates);
+                  const analysis = cycle.actualGridKWh
+                    ? calculateBillingCycleAnalysis(billingData.totalKWh, cycle.actualGridKWh, municipalRates)
+                    : null;
+
                   return (
                     <Card key={cycle.id} className="border-solar-sky/50">
                       <CardHeader>
@@ -897,9 +901,49 @@ export default function Index() {
                           </div>
                         )}
 
-                        {municipalRates.length > 0 && (
+                        {analysis && (
+                          <div className="border-t border-border pt-4 space-y-3">
+                            <div>
+                              <p className="text-sm font-semibold mb-2">Actual Grid Usage: {analysis.actualGridUsage.toFixed(1)} kWh</p>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                  <p className="text-muted-foreground">Offset by Solar</p>
+                                  <p className="font-semibold">{analysis.offsetKWh.toFixed(1)} kWh</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Remaining Grid</p>
+                                  <p className="font-semibold">{analysis.remainingGridKWh.toFixed(1)} kWh</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3">
+                                <p className="text-xs text-muted-foreground">Solar Savings</p>
+                                <p className="text-lg font-bold text-green-600">
+                                  ${analysis.solarSavings.toFixed(2)}
+                                </p>
+                              </div>
+                              <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3">
+                                <p className="text-xs text-muted-foreground">Grid Cost</p>
+                                <p className="text-lg font-bold text-red-600">
+                                  ${analysis.gridCost.toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="rounded-lg bg-solar-energy/10 border border-solar-energy/30 p-3 text-center">
+                              <p className="text-xs text-muted-foreground mb-1">Net Savings</p>
+                              <p className={`text-3xl font-bold ${analysis.netSavings >= 0 ? "text-solar-energy" : "text-destructive"}`}>
+                                ${analysis.netSavings.toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {municipalRates.length > 0 && !analysis && (
                           <div className="border-t border-border pt-4">
-                            <p className="text-xs text-muted-foreground mb-2">Total Estimated Savings</p>
+                            <p className="text-xs text-muted-foreground mb-2">Potential Savings (No Grid Usage Entered)</p>
                             <p className="text-3xl font-bold text-solar-energy">
                               ${tierBreakdown.totalCost.toFixed(2)}
                             </p>
