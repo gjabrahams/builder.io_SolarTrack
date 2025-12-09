@@ -1139,39 +1139,26 @@ export default function Index() {
 
                         {analysis && (
                           <div className="border-t border-border pt-4 space-y-3">
-                            <div>
-                              <p className="text-sm font-semibold mb-2">Actual Grid Usage: {analysis.actualGridUsage.toFixed(1)} kWh</p>
-                              <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div>
-                                  <p className="text-muted-foreground">Offset by Solar</p>
-                                  <p className="font-semibold">{analysis.offsetKWh.toFixed(1)} kWh</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground">Remaining Grid</p>
-                                  <p className="font-semibold">{analysis.remainingGridKWh.toFixed(1)} kWh</p>
-                                </div>
-                              </div>
+                            <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3">
+                              <p className="text-xs text-muted-foreground">Total Grid Cost</p>
+                              <p className="text-2xl font-bold text-red-600">
+                                ${analysis.totalGridCost.toFixed(2)}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">{analysis.actualGridUsage.toFixed(1)} kWh @ grid rates</p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3">
-                                <p className="text-xs text-muted-foreground">Solar Savings</p>
-                                <p className="text-lg font-bold text-green-600">
-                                  ${analysis.solarSavings.toFixed(2)}
-                                </p>
-                              </div>
-                              <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3">
-                                <p className="text-xs text-muted-foreground">Grid Cost</p>
-                                <p className="text-lg font-bold text-red-600">
-                                  ${analysis.gridCost.toFixed(2)}
-                                </p>
-                              </div>
+                            <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3">
+                              <p className="text-xs text-muted-foreground">Solar Generation Offset</p>
+                              <p className="text-2xl font-bold text-green-600">
+                                -${analysis.solarOffset.toFixed(2)}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">{Math.min(analysis.solarGeneration, analysis.actualGridUsage).toFixed(1)} kWh offset</p>
                             </div>
 
                             <div className="rounded-lg bg-solar-energy/10 border border-solar-energy/30 p-3 text-center">
-                              <p className="text-xs text-muted-foreground mb-1">Net Savings</p>
-                              <p className={`text-3xl font-bold ${analysis.netSavings >= 0 ? "text-solar-energy" : "text-destructive"}`}>
-                                ${analysis.netSavings.toFixed(2)}
+                              <p className="text-xs text-muted-foreground mb-1">Amount Owed</p>
+                              <p className={`text-3xl font-bold ${analysis.amountOwed > 0 ? "text-destructive" : "text-green-600"}`}>
+                                ${analysis.amountOwed.toFixed(2)}
                               </p>
                             </div>
                           </div>
