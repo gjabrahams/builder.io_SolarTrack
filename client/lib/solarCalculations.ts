@@ -123,36 +123,60 @@ export function getMonthDays(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
 }
 
-export function calculateSavings(
+export interface TierBreakdown {
+  tier1KWh: number;
+  tier1Cost: number;
+  tier2KWh: number;
+  tier2Cost: number;
+  totalCost: number;
+}
+
+export function calculateTierBreakdown(
   solarKWh: number,
   municipalRates: MunicipalRate[]
-): number {
-  if (solarKWh <= 0 || municipalRates.length === 0) {
-    return 0;
-  }
-
+): TierBreakdown {
   const sortedRates = [...municipalRates].sort((a, b) => a.tier - b.tier);
 
   // Get Tier 1 and Tier 2 rates
   const tier1 = sortedRates.find((r) => r.tier === 1);
   const tier2 = sortedRates.find((r) => r.tier === 2);
 
-  if (!tier1) {
-    return 0;
-  }
-
-  let totalSavings = 0;
   const TIER1_THRESHOLD = 350;
 
-  // Calculate Tier 1 savings (first 350 kWh)
-  const tier1KWh = Math.min(solarKWh, TIER1_THRESHOLD);
-  totalSavings += tier1KWh * tier1.ratePerKWh;
-
-  // Calculate Tier 2 savings (anything over 350 kWh)
-  if (solarKWh > TIER1_THRESHOLD && tier2) {
-    const tier2KWh = solarKWh - TIER1_THRESHOLD;
-    totalSavings += tier2KWh * tier2.ratePerKWh;
+  if (!tier1) {
+    return {
+      tier1KWh: 0,
+      tier1Cost: 0,
+      tier2KWh: 0,
+      tier2Cost: 0,
+      totalCost: 0,
+    };
   }
 
-  return totalSavings;
+  const tier1KWh = Math.min(solarKWh, TIER1_THRESHOLD);
+  const tier1Cost = tier1KWh * tier1.ratePerKWh;
+
+  let tier2KWh = 0;
+  let tier2Cost = 0;
+
+  if (solarKWh > TIER1_THRESHOLD && tier2) {
+    tier2KWh = solarKWh - TIER1_THRESHOLD;
+    tier2Cost = tier2KWh * tier2.ratePerKWh;
+  }
+
+  return {
+    tier1KWh,
+    tier1Cost,
+    tier2KWh,
+    tier2Cost,
+    totalCost: tier1Cost + tier2Cost,
+  };
+}
+
+export function calculateSavings(
+  solarKWh: number,
+  municipalRates: MunicipalRate[]
+): number {
+  const breakdown = calculateTierBreakdown(solarKWh, municipalRates);
+  return breakdown.totalCost;
 }
