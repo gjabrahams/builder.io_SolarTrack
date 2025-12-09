@@ -36,6 +36,12 @@ export default function Index() {
   const [billingStart, setBillingStart] = useState(formatDate(new Date()));
   const [billingEnd, setBillingEnd] = useState(formatDate(new Date()));
 
+  // Municipal rates state
+  const [municipalRates, setMunicipalRates] = useState<MunicipalRate[]>([]);
+  const [rateTier, setRateTier] = useState("");
+  const [rateMaxKWh, setRateMaxKWh] = useState("");
+  const [ratePerKWh, setRatePerKWh] = useState("");
+
   // Load from localStorage
   useEffect(() => {
     const savedEntries = localStorage.getItem("solarEntries");
