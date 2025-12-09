@@ -132,15 +132,26 @@ export function calculateSavings(
   }
 
   const sortedRates = [...municipalRates].sort((a, b) => a.tier - b.tier);
-  let remainingKWh = solarKWh;
+
+  // Get Tier 1 and Tier 2 rates
+  const tier1 = sortedRates.find((r) => r.tier === 1);
+  const tier2 = sortedRates.find((r) => r.tier === 2);
+
+  if (!tier1) {
+    return 0;
+  }
+
   let totalSavings = 0;
+  const TIER1_THRESHOLD = 350;
 
-  for (const rate of sortedRates) {
-    if (remainingKWh <= 0) break;
+  // Calculate Tier 1 savings (first 350 kWh)
+  const tier1KWh = Math.min(solarKWh, TIER1_THRESHOLD);
+  totalSavings += tier1KWh * tier1.ratePerKWh;
 
-    const kWhForThisTier = Math.min(remainingKWh, rate.maxKWh);
-    totalSavings += kWhForThisTier * rate.ratePerKWh;
-    remainingKWh -= kWhForThisTier;
+  // Calculate Tier 2 savings (anything over 350 kWh)
+  if (solarKWh > TIER1_THRESHOLD && tier2) {
+    const tier2KWh = solarKWh - TIER1_THRESHOLD;
+    totalSavings += tier2KWh * tier2.ratePerKWh;
   }
 
   return totalSavings;
