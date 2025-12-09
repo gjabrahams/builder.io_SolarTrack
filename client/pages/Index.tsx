@@ -672,33 +672,75 @@ export default function Index() {
                   <div className="space-y-3">
                     {billingCycles.map((cycle) => {
                       const billingData = calculateBillingData(entries, cycle.startDate, cycle.endDate);
+                      const tierBreakdown = calculateTierBreakdown(billingData.totalKWh, municipalRates);
                       return (
                         <div
                           key={cycle.id}
-                          className="flex items-center justify-between rounded-lg border border-border bg-card p-4 hover:bg-muted/50 transition-colors"
+                          className="rounded-lg border border-border bg-card p-4 hover:bg-muted/50 transition-colors"
                         >
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-foreground">
-                              {getMonthName(cycle.month)}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {cycle.startDate} to {cycle.endDate} ({billingData.days} days)
-                            </p>
-                            <p className="text-lg font-bold text-solar-energy mt-1">
-                              {billingData.totalKWh.toFixed(1)} kWh
-                              <span className="text-sm text-muted-foreground font-normal ml-2">
-                                ({billingData.avgPerDay.toFixed(2)} kWh/day)
-                              </span>
-                            </p>
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <h3 className="font-semibold text-foreground">
+                                {getMonthName(cycle.month)}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                {cycle.startDate} to {cycle.endDate} ({billingData.days} days)
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteBillingCycle(cycle.id)}
+                              className="text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteBillingCycle(cycle.id)}
-                            className="text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+
+                          <div className="grid grid-cols-2 gap-4 mb-3 p-3 bg-muted/50 rounded">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Total Generated</p>
+                              <p className="text-lg font-bold text-solar-energy">
+                                {billingData.totalKWh.toFixed(1)} kWh
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {billingData.avgPerDay.toFixed(2)} kWh/day
+                              </p>
+                            </div>
+                            {municipalRates.length > 0 && (
+                              <div>
+                                <p className="text-xs text-muted-foreground">Estimated Savings</p>
+                                <p className="text-lg font-bold text-solar-energy">
+                                  ${tierBreakdown.totalCost.toFixed(2)}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          {municipalRates.length > 0 && (
+                            <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+                              <div className="text-sm">
+                                <p className="text-muted-foreground">Tier 1 (0-350 kWh)</p>
+                                <p className="font-semibold">
+                                  {tierBreakdown.tier1KWh.toFixed(1)} kWh
+                                </p>
+                                <p className="text-solar-sun">
+                                  ${tierBreakdown.tier1Cost.toFixed(2)}
+                                </p>
+                              </div>
+                              {tierBreakdown.tier2KWh > 0 && (
+                                <div className="text-sm">
+                                  <p className="text-muted-foreground">Tier 2 (350+ kWh)</p>
+                                  <p className="font-semibold">
+                                    {tierBreakdown.tier2KWh.toFixed(1)} kWh
+                                  </p>
+                                  <p className="text-solar-sky">
+                                    ${tierBreakdown.tier2Cost.toFixed(2)}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
