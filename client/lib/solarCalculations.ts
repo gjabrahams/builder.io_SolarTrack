@@ -217,13 +217,48 @@ export function calculateBillingCycleAnalysis(
     };
   }
 
-  // Step 1: Calculate the total cost of actual grid usage
-  const totalGridCost = calculateGridCost(actualGridKWh, municipalRates);
+  const sortedRates = [...municipalRates].sort((a, b) => a.tier - b.tier);
+  const tier1 = sortedRates.find((r) => r.tier === 1);
+  const tier2 = sortedRates.find((r) => r.tier === 2);
 
-  // Step 2: Calculate how much solar offsets from the grid bill
-  const solarOffset = calculateSavings(Math.min(solarKWh, actualGridKWh), municipalRates);
+  if (!tier1) {
+    return {
+      solarGeneration: solarKWh,
+      actualGridUsage: actualGridKWh,
+      totalGridCost: 0,
+      solarOffset: 0,
+      amountOwed: 0,
+    };
+  }
 
-  // Step 3: Calculate what you actually owe (grid cost - solar offset)
+  const TIER1_THRESHOLD = 350;
+
+  // Step 1: Calculate total grid cost using tiered rates
+  let totalGridCost = 0;
+  const gridAtTier1 = Math.min(actualGridKWh, TIER1_THRESHOLD);
+  totalGridCost += gridAtTier1 * tier1.ratePerKWh;
+
+  if (actualGridKWh > TIER1_THRESHOLD && tier2) {
+    const gridAtTier2 = actualGridKWh - TIER1_THRESHOLD;
+    totalGridCost += gridAtTier2 * tier2.ratePerKWh;
+  }
+
+  // Step 2: Calculate solar offset
+  // First, determine how much Tier 1 allocation is left after grid usage
+  const remainingTier1ForSolar = Math.max(0, TIER1_THRESHOLD - actualGridKWh);
+  let solarOffset = 0;
+
+  // Apply solar to remaining Tier 1 allocation
+  const solarAtTier1 = Math.min(solarKWh, remainingTier1ForSolar);
+  solarOffset += solarAtTier1 * tier1.ratePerKWh;
+
+  // Apply remaining solar to Tier 2
+  const solarAtTier2 = Math.max(0, solarKWh - solarAtTier1);
+  if (solarAtTier2 > 0 && tier2) {
+    solarOffset += solarAtTier2 * tier2.ratePerKWh;
+  }
+
+  // Step 3: Calculate amount owed (grid cost - solar offset)
   const amountOwed = Math.max(0, totalGridCost - solarOffset);
 
   return {
