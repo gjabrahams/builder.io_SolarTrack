@@ -1297,7 +1297,7 @@ export default function Index() {
                         <div className="flex-1">
                           <h3 className="font-semibold text-foreground">Tier {rate.tier}</h3>
                           <p className="text-sm text-muted-foreground">
-                            Up to {rate.maxKWh} kWh @ ${(typeof rate.ratePerKWh === "string" ? parseFloat(rate.ratePerKWh) : rate.ratePerKWh).toFixed(3)}/kWh
+                            Up to {rate.maxKWh} kWh @ R${(typeof rate.ratePerKWh === "string" ? parseFloat(rate.ratePerKWh) : rate.ratePerKWh).toFixed(3)}/kWh
                           </p>
                         </div>
                         <Button
