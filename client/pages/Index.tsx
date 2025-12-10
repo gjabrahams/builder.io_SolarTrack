@@ -1157,8 +1157,8 @@ export default function Index() {
 
                             <div className="rounded-lg bg-solar-energy/10 border border-solar-energy/30 p-3 text-center">
                               <p className="text-xs text-muted-foreground mb-1">Amount Saved with Solar</p>
-                              <p className={`text-3xl font-bold ${analysis.amountOwed > 0 ? "text-green-600" : "text-destructive"}`}>
-                                ${analysis.amountOwed.toFixed(2)}
+                              <p className="text-3xl font-bold text-green-600">
+                                ${analysis.solarOffset.toFixed(2)}
                               </p>
                             </div>
                           </div>
