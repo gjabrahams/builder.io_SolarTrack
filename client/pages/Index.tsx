@@ -974,7 +974,7 @@ export default function Index() {
                               <div>
                                 <p className="text-xs text-muted-foreground">Estimated Savings</p>
                                 <p className="text-lg font-bold text-solar-energy">
-                                  R${tierBreakdown.totalCost.toFixed(2)}
+                                  R{tierBreakdown.totalCost.toFixed(2)}
                                 </p>
                               </div>
                             )}
@@ -988,7 +988,7 @@ export default function Index() {
                                   {tierBreakdown.tier1KWh.toFixed(1)} kWh
                                 </p>
                                 <p className="text-solar-sun">
-                                  R${tierBreakdown.tier1Cost.toFixed(2)}
+                                  R{tierBreakdown.tier1Cost.toFixed(2)}
                                 </p>
                               </div>
                               {tierBreakdown.tier2KWh > 0 && (
@@ -998,7 +998,7 @@ export default function Index() {
                                     {tierBreakdown.tier2KWh.toFixed(1)} kWh
                                   </p>
                                   <p className="text-solar-sky">
-                                    R${tierBreakdown.tier2Cost.toFixed(2)}
+                                    R{tierBreakdown.tier2Cost.toFixed(2)}
                                   </p>
                                 </div>
                               )}
@@ -1032,7 +1032,7 @@ export default function Index() {
                                   <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3">
                                     <p className="text-xs text-muted-foreground">Total Grid Cost</p>
                                     <p className="text-xl font-bold text-red-600">
-                                      R${analysis.totalGridCost.toFixed(2)}
+                                      R{analysis.totalGridCost.toFixed(2)}
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-1">{analysis.actualGridUsage.toFixed(1)} kWh @ grid rates</p>
                                   </div>
@@ -1040,7 +1040,7 @@ export default function Index() {
                                   <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3">
                                     <p className="text-xs text-muted-foreground">Solar Generation Offset</p>
                                     <p className="text-xl font-bold text-green-600">
-                                      -R${analysis.solarOffset.toFixed(2)}
+                                      -R{analysis.solarOffset.toFixed(2)}
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-1">{Math.min(analysis.solarGeneration, analysis.actualGridUsage).toFixed(1)} kWh offset</p>
                                   </div>
@@ -1048,7 +1048,7 @@ export default function Index() {
                                   <div className="rounded-lg bg-solar-energy/10 border border-solar-energy/30 p-3 text-center">
                                     <p className="text-xs text-muted-foreground mb-1">Amount Saved with Solar</p>
                                     <p className="text-3xl font-bold text-green-600">
-                                      R${analysis.solarOffset.toFixed(2)}
+                                      R{analysis.solarOffset.toFixed(2)}
                                     </p>
                                   </div>
                                 </div>
@@ -1120,7 +1120,7 @@ export default function Index() {
                                 {tierBreakdown.tier1KWh.toFixed(1)} kWh
                               </p>
                               <p className="text-solar-sun font-bold">
-                                R${tierBreakdown.tier1Cost.toFixed(2)}
+                                R{tierBreakdown.tier1Cost.toFixed(2)}
                               </p>
                             </div>
                             {tierBreakdown.tier2KWh > 0 && (
@@ -1130,7 +1130,7 @@ export default function Index() {
                                   {tierBreakdown.tier2KWh.toFixed(1)} kWh
                                 </p>
                                 <p className="text-solar-sky font-bold">
-                                  R${tierBreakdown.tier2Cost.toFixed(2)}
+                                  R{tierBreakdown.tier2Cost.toFixed(2)}
                                 </p>
                               </div>
                             )}
@@ -1142,7 +1142,7 @@ export default function Index() {
                             <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3">
                               <p className="text-xs text-muted-foreground">Total Grid Cost</p>
                               <p className="text-2xl font-bold text-red-600">
-                                R${analysis.totalGridCost.toFixed(2)}
+                                R{analysis.totalGridCost.toFixed(2)}
                               </p>
                               <p className="text-xs text-muted-foreground mt-1">{analysis.actualGridUsage.toFixed(1)} kWh @ grid rates</p>
                             </div>
@@ -1150,7 +1150,7 @@ export default function Index() {
                             <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3">
                               <p className="text-xs text-muted-foreground">Solar Generation Offset</p>
                               <p className="text-2xl font-bold text-green-600">
-                                -R${analysis.solarOffset.toFixed(2)}
+                                -R{analysis.solarOffset.toFixed(2)}
                               </p>
                               <p className="text-xs text-muted-foreground mt-1">{Math.min(analysis.solarGeneration, analysis.actualGridUsage).toFixed(1)} kWh offset</p>
                             </div>
@@ -1158,7 +1158,7 @@ export default function Index() {
                             <div className="rounded-lg bg-solar-energy/10 border border-solar-energy/30 p-3 text-center">
                               <p className="text-xs text-muted-foreground mb-1">Amount Saved with Solar</p>
                               <p className="text-3xl font-bold text-green-600">
-                                R${analysis.solarOffset.toFixed(2)}
+                                R{analysis.solarOffset.toFixed(2)}
                               </p>
                             </div>
                           </div>
@@ -1168,7 +1168,7 @@ export default function Index() {
                           <div className="border-t border-border pt-4">
                             <p className="text-xs text-muted-foreground mb-2">Potential Savings (No Grid Usage Entered)</p>
                             <p className="text-3xl font-bold text-solar-energy">
-                              R${tierBreakdown.totalCost.toFixed(2)}
+                              R{tierBreakdown.totalCost.toFixed(2)}
                             </p>
                           </div>
                         )}
@@ -1297,7 +1297,7 @@ export default function Index() {
                         <div className="flex-1">
                           <h3 className="font-semibold text-foreground">Tier {rate.tier}</h3>
                           <p className="text-sm text-muted-foreground">
-                            Up to {rate.maxKWh} kWh @ R${(typeof rate.ratePerKWh === "string" ? parseFloat(rate.ratePerKWh) : rate.ratePerKWh).toFixed(3)}/kWh
+                            Up to {rate.maxKWh} kWh @ R{(typeof rate.ratePerKWh === "string" ? parseFloat(rate.ratePerKWh) : rate.ratePerKWh).toFixed(3)}/kWh
                           </p>
                         </div>
                         <Button
@@ -1351,7 +1351,7 @@ export default function Index() {
                             </div>
                             <div className="text-right">
                               <p className="text-3xl font-bold text-solar-energy">
-                            R${savings.toFixed(2)}
+                            R{savings.toFixed(2)}
                           </p>
                               <p className="text-sm text-muted-foreground">
                                 {billingData.totalKWh.toFixed(1)} kWh generated
@@ -1366,7 +1366,7 @@ export default function Index() {
                             <div>
                               <p className="text-muted-foreground">Avg Rate</p>
                               <p className="font-semibold">
-                                R${municipalRates.length > 0 ? (savings / billingData.totalKWh).toFixed(3) : "0.000"}/kWh
+                                R{municipalRates.length > 0 ? (savings / billingData.totalKWh).toFixed(3) : "0.000"}/kWh
                               </p>
                             </div>
                             <div>
