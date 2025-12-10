@@ -1366,7 +1366,7 @@ export default function Index() {
                             <div>
                               <p className="text-muted-foreground">Avg Rate</p>
                               <p className="font-semibold">
-                                ${municipalRates.length > 0 ? (savings / billingData.totalKWh).toFixed(3) : "0.000"}/kWh
+                                R${municipalRates.length > 0 ? (savings / billingData.totalKWh).toFixed(3) : "0.000"}/kWh
                               </p>
                             </div>
                             <div>
