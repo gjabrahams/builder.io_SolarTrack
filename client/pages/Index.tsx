@@ -231,6 +231,33 @@ export default function Index() {
     setGridUsageInput({ ...gridUsageInput, [cycleId]: gridKWh });
   };
 
+  const calculatePreviousMonthAverage = (currentMonth: string): number | null => {
+    // Get the previous month
+    const [year, month] = currentMonth.split("-");
+    const currentDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+    currentDate.setMonth(currentDate.getMonth() - 1);
+
+    const prevYear = currentDate.getFullYear();
+    const prevMonth = String(currentDate.getMonth() + 1).padStart(2, "0");
+    const previousMonthKey = `${prevYear}-${prevMonth}`;
+
+    // Find cycles from previous month with actualGridKWh data
+    const previousMonthCycles = billingCycles.filter(
+      (cycle) => cycle.month === previousMonthKey && cycle.actualGridKWh !== undefined
+    );
+
+    if (previousMonthCycles.length === 0) {
+      return null;
+    }
+
+    // Calculate average
+    const totalGridUsage = previousMonthCycles.reduce(
+      (sum, cycle) => sum + (cycle.actualGridKWh || 0),
+      0
+    );
+    return totalGridUsage / previousMonthCycles.length;
+  };
+
   const handleImportCSV = (e: React.FormEvent) => {
     e.preventDefault();
     if (!importData.trim() || !importStartDate) {
