@@ -1036,13 +1036,21 @@ export default function Index() {
                           <div className="border-t border-border pt-3 mt-3">
                             <div className="space-y-2">
                               <label className="text-sm font-medium">Actual Grid Usage (kWh)</label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                placeholder="Enter actual grid consumption"
-                                value={gridUsageInput[cycle.id] ?? (cycle.actualGridKWh?.toString() ?? "")}
-                                onChange={(e) => handleUpdateGridUsage(cycle.id, e.target.value)}
-                              />
+                              {(() => {
+                                const prevMonthAvg = calculatePreviousMonthAverage(cycle.month);
+                                const placeholderText = prevMonthAvg !== null
+                                  ? `Previous month average: ${prevMonthAvg.toFixed(2)} kWh`
+                                  : "Enter actual grid consumption";
+                                return (
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder={placeholderText}
+                                    value={gridUsageInput[cycle.id] ?? (cycle.actualGridKWh?.toString() ?? "")}
+                                    onChange={(e) => handleUpdateGridUsage(cycle.id, e.target.value)}
+                                  />
+                                );
+                              })()}
                             </div>
                           </div>
 
