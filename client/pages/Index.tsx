@@ -1505,6 +1505,9 @@ export default function Index() {
                           <p className="text-sm text-muted-foreground">
                             Up to {rate.maxKWh} kWh @ R{(typeof rate.ratePerKWh === "string" ? parseFloat(rate.ratePerKWh) : rate.ratePerKWh).toFixed(3)}/kWh
                           </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Effective: {rate.startDate} {rate.endDate ? `to ${rate.endDate}` : "(ongoing)"}
+                          </p>
                         </div>
                         <Button
                           variant="ghost"
