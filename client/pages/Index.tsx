@@ -271,6 +271,21 @@ export default function Index() {
     return totalGridUsage / previousMonthCycles.length;
   };
 
+  const handleUpdateAppliedRate = (cycleId: string, rateId: string) => {
+    const updated = billingCycles.map((c) =>
+      c.id === cycleId ? { ...c, appliedRateId: rateId || undefined } : c
+    );
+    setBillingCycles(updated);
+  };
+
+  const getEffectiveRates = (cycle: BillingCycle): MunicipalRate[] => {
+    if (cycle.appliedRateId) {
+      const selectedRate = municipalRates.find((r) => r.id === cycle.appliedRateId);
+      return selectedRate ? [selectedRate] : [];
+    }
+    return getApplicableRates(cycle.startDate, municipalRates);
+  };
+
   const handleImportCSV = (e: React.FormEvent) => {
     e.preventDefault();
     if (!importData.trim() || !importStartDate) {
