@@ -1124,12 +1124,13 @@ export default function Index() {
                           </div>
 
                           {/* Analysis when grid usage is entered */}
-                          {cycle.actualGridKWh && municipalRates.length > 0 && (
+                          {cycle.actualGridKWh && (effectiveRates.length > 0 || municipalRates.length > 0) && (
                             (() => {
+                              const ratesForAnalysis = effectiveRates.length > 0 ? effectiveRates : municipalRates;
                               const analysis = calculateBillingCycleAnalysis(
                                 billingData.totalKWh,
                                 cycle.actualGridKWh,
-                                municipalRates
+                                ratesForAnalysis
                               );
                               return (
                                 <div className="border-t border-border pt-3 mt-3 space-y-3">
