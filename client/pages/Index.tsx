@@ -995,7 +995,8 @@ export default function Index() {
                   <div className="space-y-3">
                     {billingCycles.map((cycle) => {
                       const billingData = calculateBillingData(entries, cycle.startDate, cycle.endDate);
-                      const tierBreakdown = calculateTierBreakdown(billingData.totalKWh, municipalRates);
+                      const effectiveRates = getEffectiveRates(cycle);
+                      const tierBreakdown = calculateTierBreakdown(billingData.totalKWh, effectiveRates.length > 0 ? effectiveRates : municipalRates);
                       return (
                         <div
                           key={cycle.id}
