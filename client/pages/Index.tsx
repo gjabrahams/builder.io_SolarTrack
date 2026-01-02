@@ -1594,7 +1594,9 @@ export default function Index() {
                         cycle.startDate,
                         cycle.endDate
                       );
-                      const savings = calculateSavings(billingData.totalKWh, municipalRates);
+                      const cycleEffectiveRates = getEffectiveRates(cycle);
+                      const ratesToUse = cycleEffectiveRates.length > 0 ? cycleEffectiveRates : municipalRates;
+                      const savings = calculateSavings(billingData.totalKWh, ratesToUse);
                       return (
                         <div
                           key={cycle.id}
