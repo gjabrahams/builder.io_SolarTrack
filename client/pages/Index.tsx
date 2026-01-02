@@ -98,6 +98,8 @@ export default function Index() {
           tier: Number(r.tier),
           maxKWh: Number(r.maxKWh),
           ratePerKWh: Number(r.ratePerKWh),
+          startDate: String(r.startDate),
+          endDate: r.endDate ? String(r.endDate) : undefined,
         }));
         setMunicipalRates(normalizedRates);
       } catch (e) {
