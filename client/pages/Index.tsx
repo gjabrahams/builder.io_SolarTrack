@@ -1175,9 +1175,11 @@ export default function Index() {
               <div className="grid gap-4 sm:grid-cols-2">
                 {billingCycles.map((cycle) => {
                   const billingData = calculateBillingData(entries, cycle.startDate, cycle.endDate);
-                  const tierBreakdown = calculateTierBreakdown(billingData.totalKWh, municipalRates);
+                  const cycleEffectiveRates = getEffectiveRates(cycle);
+                  const ratesToUse = cycleEffectiveRates.length > 0 ? cycleEffectiveRates : municipalRates;
+                  const tierBreakdown = calculateTierBreakdown(billingData.totalKWh, ratesToUse);
                   const analysis = cycle.actualGridKWh
-                    ? calculateBillingCycleAnalysis(billingData.totalKWh, cycle.actualGridKWh, municipalRates)
+                    ? calculateBillingCycleAnalysis(billingData.totalKWh, cycle.actualGridKWh, ratesToUse)
                     : null;
 
                   return (
