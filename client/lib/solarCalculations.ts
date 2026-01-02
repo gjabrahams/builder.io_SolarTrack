@@ -16,6 +16,8 @@ export interface MunicipalRate {
   tier: number;
   maxKWh: number;
   ratePerKWh: number;
+  startDate: string;
+  endDate?: string;
 }
 
 export interface MonthData {
