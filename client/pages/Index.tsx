@@ -20,6 +20,7 @@ import {
   calculateTierBreakdown,
   calculateBillingCycleAnalysis,
   parseDate,
+  calculateGridCost,
 } from "@/lib/solarCalculations";
 
 export default function Index() {
@@ -48,6 +49,7 @@ export default function Index() {
 
   // Grid usage tracking state
   const [gridUsageInput, setGridUsageInput] = useState<{ [cycleId: string]: string }>({});
+  const [comparisonMode, setComparisonMode] = useState<"years" | "months">("months");
 
   // CSV import state
   const [importMode, setImportMode] = useState(false);
@@ -471,7 +473,7 @@ export default function Index() {
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto">
             <TabsTrigger value="input" className="gap-2">
               <Zap className="h-4 w-4" />
               <span className="hidden sm:inline">Input</span>
@@ -487,6 +489,10 @@ export default function Index() {
             <TabsTrigger value="summary" className="gap-2">
               <TrendingUp className="h-4 w-4" />
               <span className="hidden sm:inline">Summary</span>
+            </TabsTrigger>
+            <TabsTrigger value="comparison" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Compare</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="gap-2">
               <Sun className="h-4 w-4" />
@@ -1032,8 +1038,8 @@ export default function Index() {
                             </div>
                           )}
 
-                          {/* Grid Usage Input */}
-                          <div className="border-t border-border pt-3 mt-3">
+                          {/* Grid Usage Input and Total Consumption */}
+                          <div className="border-t border-border pt-3 mt-3 space-y-3">
                             <div className="space-y-2">
                               <label className="text-sm font-medium">Actual Grid Usage (kWh)</label>
                               {(() => {
@@ -1052,6 +1058,15 @@ export default function Index() {
                                 );
                               })()}
                             </div>
+                            {cycle.actualGridKWh && (
+                              <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 p-3">
+                                <p className="text-xs text-muted-foreground">Total Consumption</p>
+                                <p className="text-xl font-bold text-blue-600">
+                                  {(billingData.totalKWh + cycle.actualGridKWh).toFixed(1)} kWh
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">{billingData.totalKWh.toFixed(1)} kWh generated + {cycle.actualGridKWh.toFixed(1)} kWh grid</p>
+                              </div>
+                            )}
                           </div>
 
                           {/* Analysis when grid usage is entered */}
@@ -1251,6 +1266,136 @@ export default function Index() {
                     <Zap className="h-4 w-4" />
                     Add First Entry
                   </Button>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Comparison Tab */}
+          <TabsContent value="comparison" className="space-y-6">
+            {billingCycles.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Energy & Cost Comparison</CardTitle>
+                  <CardDescription>Compare your solar generation, grid usage, and costs over time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {/* Toggle between Years and Months */}
+                    <div className="flex gap-2">
+                      <Button
+                        variant={comparisonMode === "months" ? "default" : "outline"}
+                        onClick={() => setComparisonMode("months")}
+                        className="gap-2"
+                      >
+                        <Calendar className="h-4 w-4" />
+                        Last 5 Months
+                      </Button>
+                      <Button
+                        variant={comparisonMode === "years" ? "default" : "outline"}
+                        onClick={() => setComparisonMode("years")}
+                        className="gap-2"
+                      >
+                        <TrendingUp className="h-4 w-4" />
+                        Last 5 Years
+                      </Button>
+                    </div>
+
+                    {/* Comparison Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left py-3 px-3 font-semibold text-foreground">{comparisonMode === "months" ? "Month" : "Year"}</th>
+                            <th className="text-right py-3 px-3 font-semibold text-foreground">Generated (kWh)</th>
+                            <th className="text-right py-3 px-3 font-semibold text-foreground">Grid Usage (kWh)</th>
+                            <th className="text-right py-3 px-3 font-semibold text-foreground">Grid Cost (R$)</th>
+                            <th className="text-right py-3 px-3 font-semibold text-foreground">Solar Savings (R$)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            if (comparisonMode === "months") {
+                              // Group by month and get last 5
+                              const monthMap = new Map<string, { generated: number; gridUsage: number; gridCost: number; solarSavings: number }>();
+
+                              billingCycles.forEach((cycle) => {
+                                const billingData = calculateBillingData(entries, cycle.startDate, cycle.endDate);
+                                const tierBreakdown = calculateTierBreakdown(billingData.totalKWh, municipalRates);
+                                const gridCost = cycle.actualGridKWh
+                                  ? calculateTierBreakdown(cycle.actualGridKWh, municipalRates).totalCost
+                                  : 0;
+                                const solarSavings = cycle.actualGridKWh
+                                  ? calculateBillingCycleAnalysis(billingData.totalKWh, cycle.actualGridKWh, municipalRates).solarOffset
+                                  : tierBreakdown.totalCost;
+
+                                if (!monthMap.has(cycle.month)) {
+                                  monthMap.set(cycle.month, { generated: 0, gridUsage: 0, gridCost: 0, solarSavings: 0 });
+                                }
+
+                                const data = monthMap.get(cycle.month)!;
+                                data.generated += billingData.totalKWh;
+                                data.gridUsage += cycle.actualGridKWh || 0;
+                                data.gridCost += gridCost;
+                                data.solarSavings += solarSavings;
+                              });
+
+                              return Array.from(monthMap.entries())
+                                .sort((a, b) => b[0].localeCompare(a[0]))
+                                .slice(0, 5)
+                                .map(([month, data]) => (
+                                  <tr key={month} className="border-b border-border hover:bg-muted/50">
+                                    <td className="py-3 px-3 font-medium">{getMonthName(month)}</td>
+                                    <td className="py-3 px-3 text-right text-solar-energy font-semibold">{data.generated.toFixed(1)}</td>
+                                    <td className="py-3 px-3 text-right">{data.gridUsage.toFixed(1)}</td>
+                                    <td className="py-3 px-3 text-right text-red-600 font-semibold">R{data.gridCost.toFixed(2)}</td>
+                                    <td className="py-3 px-3 text-right text-green-600 font-semibold">R{data.solarSavings.toFixed(2)}</td>
+                                  </tr>
+                                ));
+                            } else {
+                              // Group by year and get last 5
+                              const yearMap = new Map<number, { generated: number; gridUsage: number; gridCost: number; solarSavings: number }>();
+
+                              billingCycles.forEach((cycle) => {
+                                const year = parseInt(cycle.month.split("-")[0]);
+                                const billingData = calculateBillingData(entries, cycle.startDate, cycle.endDate);
+                                const tierBreakdown = calculateTierBreakdown(billingData.totalKWh, municipalRates);
+                                const gridCost = cycle.actualGridKWh
+                                  ? calculateTierBreakdown(cycle.actualGridKWh, municipalRates).totalCost
+                                  : 0;
+                                const solarSavings = cycle.actualGridKWh
+                                  ? calculateBillingCycleAnalysis(billingData.totalKWh, cycle.actualGridKWh, municipalRates).solarOffset
+                                  : tierBreakdown.totalCost;
+
+                                if (!yearMap.has(year)) {
+                                  yearMap.set(year, { generated: 0, gridUsage: 0, gridCost: 0, solarSavings: 0 });
+                                }
+
+                                const data = yearMap.get(year)!;
+                                data.generated += billingData.totalKWh;
+                                data.gridUsage += cycle.actualGridKWh || 0;
+                                data.gridCost += gridCost;
+                                data.solarSavings += solarSavings;
+                              });
+
+                              return Array.from(yearMap.entries())
+                                .sort((a, b) => b[0] - a[0])
+                                .slice(0, 5)
+                                .map(([year, data]) => (
+                                  <tr key={year} className="border-b border-border hover:bg-muted/50">
+                                    <td className="py-3 px-3 font-medium">{year}</td>
+                                    <td className="py-3 px-3 text-right text-solar-energy font-semibold">{data.generated.toFixed(1)}</td>
+                                    <td className="py-3 px-3 text-right">{data.gridUsage.toFixed(1)}</td>
+                                    <td className="py-3 px-3 text-right text-red-600 font-semibold">R{data.gridCost.toFixed(2)}</td>
+                                    <td className="py-3 px-3 text-right text-green-600 font-semibold">R{data.solarSavings.toFixed(2)}</td>
+                                  </tr>
+                                ));
+                            }
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
