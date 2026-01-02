@@ -1065,8 +1065,34 @@ export default function Index() {
                             </div>
                           )}
 
-                          {/* Grid Usage Input and Total Consumption */}
+                          {/* Rate Selection and Grid Usage Input */}
                           <div className="border-t border-border pt-3 mt-3 space-y-3">
+                            {municipalRates.length > 0 && (
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">Applied Rate Period</label>
+                                <Select
+                                  value={cycle.appliedRateId || "auto"}
+                                  onValueChange={(value) =>
+                                    handleUpdateAppliedRate(cycle.id, value === "auto" ? "" : value)
+                                  }
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select rate period" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="auto">
+                                      Auto (Active on {cycle.startDate})
+                                    </SelectItem>
+                                    {municipalRates.map((rate) => (
+                                      <SelectItem key={rate.id} value={rate.id}>
+                                        Tier {rate.tier} - {rate.startDate}
+                                        {rate.endDate ? ` to ${rate.endDate}` : " (ongoing)"}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
                             <div className="space-y-2">
                               <label className="text-sm font-medium">Actual Grid Usage (kWh)</label>
                               {(() => {
