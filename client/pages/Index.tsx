@@ -178,7 +178,7 @@ export default function Index() {
 
   const handleAddMunicipalRate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rateTier || !rateMaxKWh || !ratePerKWh) {
+    if (!rateTier || !rateMaxKWh || !ratePerKWh || !rateStartDate) {
       alert("Please fill in all rate fields");
       return;
     }
@@ -192,9 +192,8 @@ export default function Index() {
       return;
     }
 
-    // Check if tier already exists
-    if (municipalRates.some((r) => r.tier === tier)) {
-      alert("This tier already exists. Please edit the existing tier instead.");
+    if (rateEndDate && parseDate(rateStartDate) >= parseDate(rateEndDate)) {
+      alert("End date must be after start date");
       return;
     }
 
@@ -203,12 +202,21 @@ export default function Index() {
       tier,
       maxKWh,
       ratePerKWh: perKWh,
+      startDate: rateStartDate,
+      endDate: rateEndDate || undefined,
     };
 
-    setMunicipalRates([...municipalRates, newRate].sort((a, b) => a.tier - b.tier));
+    setMunicipalRates([...municipalRates, newRate].sort((a, b) => {
+      if (a.startDate !== b.startDate) {
+        return b.startDate.localeCompare(a.startDate);
+      }
+      return a.tier - b.tier;
+    }));
     setRateTier("");
     setRateMaxKWh("");
     setRatePerKWh("");
+    setRateStartDate(formatDate(new Date()));
+    setRateEndDate("");
   };
 
   const handleDeleteMunicipalRate = (id: string) => {
