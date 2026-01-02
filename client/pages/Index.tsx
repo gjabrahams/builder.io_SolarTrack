@@ -1376,12 +1376,14 @@ export default function Index() {
 
                               billingCycles.forEach((cycle) => {
                                 const billingData = calculateBillingData(entries, cycle.startDate, cycle.endDate);
-                                const tierBreakdown = calculateTierBreakdown(billingData.totalKWh, municipalRates);
+                                const cycleEffectiveRates = getEffectiveRates(cycle);
+                                const ratesToUse = cycleEffectiveRates.length > 0 ? cycleEffectiveRates : municipalRates;
+                                const tierBreakdown = calculateTierBreakdown(billingData.totalKWh, ratesToUse);
                                 const gridCost = cycle.actualGridKWh
-                                  ? calculateTierBreakdown(cycle.actualGridKWh, municipalRates).totalCost
+                                  ? calculateTierBreakdown(cycle.actualGridKWh, ratesToUse).totalCost
                                   : 0;
                                 const solarSavings = cycle.actualGridKWh
-                                  ? calculateBillingCycleAnalysis(billingData.totalKWh, cycle.actualGridKWh, municipalRates).solarOffset
+                                  ? calculateBillingCycleAnalysis(billingData.totalKWh, cycle.actualGridKWh, ratesToUse).solarOffset
                                   : tierBreakdown.totalCost;
 
                                 if (!monthMap.has(cycle.month)) {
