@@ -1426,7 +1426,7 @@ export default function Index() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleAddMunicipalRate} className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-4">
+                  <div className="grid gap-4 sm:grid-cols-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Tier Number</label>
                       <Input
@@ -1456,6 +1456,22 @@ export default function Index() {
                         placeholder="0.00"
                         value={ratePerKWh}
                         onChange={(e) => setRatePerKWh(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Start Date</label>
+                      <Input
+                        type="date"
+                        value={rateStartDate}
+                        onChange={(e) => setRateStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">End Date (Optional)</label>
+                      <Input
+                        type="date"
+                        value={rateEndDate}
+                        onChange={(e) => setRateEndDate(e.target.value)}
                       />
                     </div>
                     <div className="flex items-end">
