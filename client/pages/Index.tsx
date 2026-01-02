@@ -21,6 +21,7 @@ import {
   calculateBillingCycleAnalysis,
   parseDate,
   calculateGridCost,
+  getApplicableRates,
 } from "@/lib/solarCalculations";
 
 export default function Index() {
