@@ -46,6 +46,8 @@ export default function Index() {
   const [rateTier, setRateTier] = useState("");
   const [rateMaxKWh, setRateMaxKWh] = useState("");
   const [ratePerKWh, setRatePerKWh] = useState("");
+  const [rateStartDate, setRateStartDate] = useState(formatDate(new Date()));
+  const [rateEndDate, setRateEndDate] = useState("");
 
   // Grid usage tracking state
   const [gridUsageInput, setGridUsageInput] = useState<{ [cycleId: string]: string }>({});
