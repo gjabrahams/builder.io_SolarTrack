@@ -20,6 +20,20 @@ export interface MunicipalRate {
   endDate?: string;
 }
 
+export function getApplicableRates(
+  billingStartDate: string,
+  allRates: MunicipalRate[]
+): MunicipalRate[] {
+  const date = parseDate(billingStartDate);
+
+  return allRates.filter((rate) => {
+    const startDate = parseDate(rate.startDate);
+    const endDate = rate.endDate ? parseDate(rate.endDate) : new Date("2099-12-31");
+
+    return date >= startDate && date <= endDate;
+  });
+}
+
 export interface MonthData {
   month: string;
   year: number;
