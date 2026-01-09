@@ -1381,6 +1381,23 @@ export default function Index() {
           {/* Summary Tab */}
           <TabsContent value="summary" className="space-y-6">
             {billingCycles.length > 0 && (
+              <>
+                <Card className="border-solar-sun/20 bg-solar-sun/5">
+                  <CardContent className="pt-6">
+                    <Button
+                      onClick={exportBillingData}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <Sun className="h-3 w-3" />
+                      Export Summary Data
+                    </Button>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+            {billingCycles.length > 0 && (
               <div className="grid gap-4 sm:grid-cols-2">
                 {billingCycles.map((cycle) => {
                   const billingData = calculateBillingData(entries, cycle.startDate, cycle.endDate);
