@@ -397,6 +397,32 @@ export default function Index() {
     alert(`Imported ${newEntries.length} solar generation records from file`);
   };
 
+  const downloadExampleCSV = () => {
+    const exampleData = [
+      "Date,Solar kWh,Grid kWh",
+      "15-Jan-2025,18.5,8.2",
+      "16-Jan-2025,22.3,5.1",
+      "17-Jan-2025,19.7,10.5",
+      "18-Jan-2025,25.1,3.2",
+      "19-Jan-2025,20.4,7.8",
+      "20-Jan-2025,23.8,4.6",
+      "21-Jan-2025,21.2,6.3",
+    ];
+
+    const csvContent = exampleData.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "solar-data-example.csv");
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const monthlyData = calculateMonthlyData(entries);
 
   const getDatesBetween = (startStr: string, endStr: string): string[] => {
