@@ -1563,22 +1563,33 @@ export default function Index() {
                 <CardContent>
                   <div className="space-y-6">
                     {/* Toggle between Years and Months */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 justify-between items-center flex-wrap">
+                      <div className="flex gap-2">
+                        <Button
+                          variant={comparisonMode === "months" ? "default" : "outline"}
+                          onClick={() => setComparisonMode("months")}
+                          className="gap-2"
+                        >
+                          <Calendar className="h-4 w-4" />
+                          Last 5 Months
+                        </Button>
+                        <Button
+                          variant={comparisonMode === "years" ? "default" : "outline"}
+                          onClick={() => setComparisonMode("years")}
+                          className="gap-2"
+                        >
+                          <TrendingUp className="h-4 w-4" />
+                          Last 5 Years
+                        </Button>
+                      </div>
                       <Button
-                        variant={comparisonMode === "months" ? "default" : "outline"}
-                        onClick={() => setComparisonMode("months")}
+                        onClick={exportBillingData}
+                        variant="outline"
+                        size="sm"
                         className="gap-2"
                       >
-                        <Calendar className="h-4 w-4" />
-                        Last 5 Months
-                      </Button>
-                      <Button
-                        variant={comparisonMode === "years" ? "default" : "outline"}
-                        onClick={() => setComparisonMode("years")}
-                        className="gap-2"
-                      >
-                        <TrendingUp className="h-4 w-4" />
-                        Last 5 Years
+                        <Sun className="h-3 w-3" />
+                        Export Comparison Data
                       </Button>
                     </div>
 
