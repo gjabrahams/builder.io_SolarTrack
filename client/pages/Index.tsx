@@ -1699,6 +1699,21 @@ export default function Index() {
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
+            {(entries.length > 0 || billingCycles.length > 0 || municipalRates.length > 0) && (
+              <Card className="border-solar-sun/20 bg-solar-sun/5">
+                <CardContent className="pt-6">
+                  <Button
+                    onClick={exportAllData}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Sun className="h-3 w-3" />
+                    Export All Data
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
