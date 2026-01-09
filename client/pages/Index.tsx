@@ -547,8 +547,6 @@ export default function Index() {
     document.body.removeChild(link);
   };
 
-  const monthlyData = calculateMonthlyData(entries);
-
   const getDatesBetween = (startStr: string, endStr: string): string[] => {
     const start = parseDate(startStr);
     const end = parseDate(endStr);
