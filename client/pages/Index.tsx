@@ -1131,6 +1131,21 @@ export default function Index() {
 
           {/* Billing Cycles Tab */}
           <TabsContent value="billing" className="space-y-6">
+            {billingCycles.length > 0 && (
+              <Card className="border-solar-sun/20 bg-solar-sun/5">
+                <CardContent className="pt-6">
+                  <Button
+                    onClick={exportBillingData}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Sun className="h-3 w-3" />
+                    Export Billing Data
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
