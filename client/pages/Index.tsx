@@ -423,6 +423,136 @@ export default function Index() {
     document.body.removeChild(link);
   };
 
+  const exportAllData = () => {
+    const timestamp = new Date().toISOString().split("T")[0];
+    const csvData = [];
+
+    // Export daily entries
+    csvData.push("=== SOLAR ENTRIES ===");
+    csvData.push("Date,Solar kWh");
+    entries.forEach((entry) => {
+      csvData.push(`${entry.date},${entry.kWh}`);
+    });
+
+    csvData.push("");
+    csvData.push("=== BILLING CYCLES ===");
+    csvData.push(
+      "Cycle Start,Cycle End,Solar Generated (kWh),Actual Grid Usage (kWh),Total Consumption (kWh),Tier 1 Cost,Tier 2 Cost,Total Grid Cost,Solar Savings,Applied Rate"
+    );
+    billingCycles.forEach((cycle) => {
+      const analysis = calculateBillingCycleAnalysis(
+        cycle,
+        entries,
+        getEffectiveRates(cycle)
+      );
+      const gridCost = calculateGridCost(
+        cycle.actualGridKWh || 0,
+        getEffectiveRates(cycle)
+      );
+      const appliedRate = cycle.appliedRateId
+        ? municipalRates.find((r) => r.id === cycle.appliedRateId)?.tier || "Auto"
+        : "Auto";
+
+      csvData.push(
+        `${cycle.startDate},${cycle.endDate},${(analysis.billingData.totalKWh || 0).toFixed(2)},${(cycle.actualGridKWh || 0).toFixed(2)},${((analysis.billingData.totalKWh || 0) + (cycle.actualGridKWh || 0)).toFixed(2)},${(analysis.tierBreakdown.tier1Cost || 0).toFixed(2)},${(analysis.tierBreakdown.tier2Cost || 0).toFixed(2)},${gridCost.toFixed(2)},${(analysis.savings || 0).toFixed(2)},${appliedRate}`
+      );
+    });
+
+    csvData.push("");
+    csvData.push("=== MUNICIPAL RATES ===");
+    csvData.push("Tier,Max kWh,Rate per kWh,Start Date,End Date");
+    municipalRates.forEach((rate) => {
+      csvData.push(
+        `${rate.tier},${rate.maxKWh},${rate.ratePerKWh},${rate.startDate},${rate.endDate || "Current"}`
+      );
+    });
+
+    const csvContent = csvData.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", `solar-data-complete-${timestamp}.csv`);
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportMonthlyData = () => {
+    const timestamp = new Date().toISOString().split("T")[0];
+    const csvData = [];
+
+    csvData.push("Month,Total Solar (kWh),Days with Data,Average Daily Solar (kWh)");
+    Object.entries(monthlyData).forEach(([month, data]) => {
+      const avg = data.days > 0 ? (data.total / data.days).toFixed(2) : "0.00";
+      csvData.push(`${month},${data.total.toFixed(2)},${data.days},${avg}`);
+    });
+
+    const csvContent = csvData.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", `solar-monthly-${timestamp}.csv`);
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportBillingData = () => {
+    const timestamp = new Date().toISOString().split("T")[0];
+    const csvData = [];
+
+    csvData.push(
+      "Cycle Start,Cycle End,Solar Generated (kWh),Grid Usage (kWh),Total Consumption (kWh),Tier 1 Cost,Tier 2 Cost,Total Grid Cost,Solar Savings,Applied Rate"
+    );
+    billingCycles.forEach((cycle) => {
+      const analysis = calculateBillingCycleAnalysis(
+        cycle,
+        entries,
+        getEffectiveRates(cycle)
+      );
+      const gridCost = calculateGridCost(
+        cycle.actualGridKWh || 0,
+        getEffectiveRates(cycle)
+      );
+      const appliedRate = cycle.appliedRateId
+        ? municipalRates.find((r) => r.id === cycle.appliedRateId)?.tier || "Auto"
+        : "Auto";
+
+      csvData.push(
+        `${cycle.startDate},${cycle.endDate},${(analysis.billingData.totalKWh || 0).toFixed(2)},${(cycle.actualGridKWh || 0).toFixed(2)},${((analysis.billingData.totalKWh || 0) + (cycle.actualGridKWh || 0)).toFixed(2)},${(analysis.tierBreakdown.tier1Cost || 0).toFixed(2)},${(analysis.tierBreakdown.tier2Cost || 0).toFixed(2)},${gridCost.toFixed(2)},${(analysis.savings || 0).toFixed(2)},${appliedRate}`
+      );
+    });
+
+    const csvContent = csvData.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", `solar-billing-${timestamp}.csv`);
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const getEffectiveRates = (cycle: BillingCycle): MunicipalRate[] => {
+    if (cycle.appliedRateId) {
+      const selectedRate = municipalRates.find((r) => r.id === cycle.appliedRateId);
+      return selectedRate ? [selectedRate] : [];
+    }
+    return getApplicableRates(cycle.startDate, municipalRates);
+  };
+
   const monthlyData = calculateMonthlyData(entries);
 
   const getDatesBetween = (startStr: string, endStr: string): string[] => {
