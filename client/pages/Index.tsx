@@ -489,9 +489,8 @@ export default function Index() {
     const csvData = [];
 
     csvData.push("Month,Total Solar (kWh),Days with Data,Average Daily Solar (kWh)");
-    Object.entries(monthlyData).forEach(([month, data]) => {
-      const avg = data.days > 0 ? (data.total / data.days).toFixed(2) : "0.00";
-      csvData.push(`${month},${data.total.toFixed(2)},${data.days},${avg}`);
+    Array.from(monthlyData.values()).forEach((data) => {
+      csvData.push(`${data.month},${data.totalKWh.toFixed(2)},${data.days},${data.avgPerDay.toFixed(2)}`);
     });
 
     const csvContent = csvData.join("\n");
