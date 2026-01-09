@@ -545,14 +545,6 @@ export default function Index() {
     document.body.removeChild(link);
   };
 
-  const getEffectiveRates = (cycle: BillingCycle): MunicipalRate[] => {
-    if (cycle.appliedRateId) {
-      const selectedRate = municipalRates.find((r) => r.id === cycle.appliedRateId);
-      return selectedRate ? [selectedRate] : [];
-    }
-    return getApplicableRates(cycle.startDate, municipalRates);
-  };
-
   const monthlyData = calculateMonthlyData(entries);
 
   const getDatesBetween = (startStr: string, endStr: string): string[] => {
