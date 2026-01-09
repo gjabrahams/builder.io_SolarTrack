@@ -1395,10 +1395,7 @@ export default function Index() {
                     </Button>
                   </CardContent>
                 </Card>
-              </>
-            )}
-            {billingCycles.length > 0 && (
-              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                 {billingCycles.map((cycle) => {
                   const billingData = calculateBillingData(entries, cycle.startDate, cycle.endDate);
                   const cycleEffectiveRates = getEffectiveRates(cycle);
@@ -1510,6 +1507,7 @@ export default function Index() {
                   );
                 })}
               </div>
+              </>
             )}
 
             {billingCycles.length === 0 && entries.length > 0 && (
