@@ -586,6 +586,15 @@ export default function Index() {
                         <p className="text-xs text-muted-foreground mt-1">
                           Format: Date (DD-MMM-YYYY), Solar kWh, optional Grid kWh
                         </p>
+                        <Button
+                          onClick={downloadExampleCSV}
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 gap-2"
+                        >
+                          <Sun className="h-3 w-3" />
+                          Download Example CSV
+                        </Button>
                       </div>
                       <div>
                         <Button
