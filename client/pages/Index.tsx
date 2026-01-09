@@ -397,6 +397,8 @@ export default function Index() {
     alert(`Imported ${newEntries.length} solar generation records from file`);
   };
 
+  const monthlyData = calculateMonthlyData(entries);
+
   const downloadExampleCSV = () => {
     const exampleData = [
       "Date,Solar kWh,Grid kWh",
