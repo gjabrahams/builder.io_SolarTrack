@@ -1008,6 +1008,21 @@ export default function Index() {
 
           {/* Monthly Analysis Tab */}
           <TabsContent value="monthly" className="space-y-6">
+            {Object.keys(monthlyData).length > 0 && (
+              <Card className="border-solar-sun/20 bg-solar-sun/5">
+                <CardContent className="pt-6">
+                  <Button
+                    onClick={exportMonthlyData}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Sun className="h-3 w-3" />
+                    Export Monthly Data
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Card>
                 <CardHeader className="pb-2">
