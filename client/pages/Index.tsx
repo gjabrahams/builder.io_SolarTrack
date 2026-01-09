@@ -679,6 +679,26 @@ export default function Index() {
 
           {/* Daily Input Tab */}
           <TabsContent value="input" className="space-y-6">
+            {/* Export Options */}
+            {(entries.length > 0 || billingCycles.length > 0) && (
+              <Card className="border-solar-sun/20 bg-solar-sun/5">
+                <CardContent className="pt-6">
+                  <div className="flex flex-wrap gap-2">
+                    {entries.length > 0 && (
+                      <Button
+                        onClick={exportAllData}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Sun className="h-3 w-3" />
+                        Export All Data
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {/* CSV Import Section */}
             {!importMode ? (
               <Card className="border-solar-sun/50">
