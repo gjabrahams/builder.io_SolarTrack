@@ -516,21 +516,22 @@ export default function Index() {
       "Cycle Start,Cycle End,Solar Generated (kWh),Grid Usage (kWh),Total Consumption (kWh),Tier 1 Cost,Tier 2 Cost,Total Grid Cost,Solar Savings,Applied Rate"
     );
     billingCycles.forEach((cycle) => {
-      const analysis = calculateBillingCycleAnalysis(
-        cycle,
-        entries,
-        getEffectiveRates(cycle)
-      );
-      const gridCost = calculateGridCost(
-        cycle.actualGridKWh || 0,
-        getEffectiveRates(cycle)
-      );
+      const billingData = calculateBillingData(entries, cycle.startDate, cycle.endDate);
+      const cycleEffectiveRates = getEffectiveRates(cycle);
+      const ratesToUse = cycleEffectiveRates.length > 0 ? cycleEffectiveRates : municipalRates;
+      const tierBreakdown = calculateTierBreakdown(billingData.totalKWh, ratesToUse);
+      const analysis = cycle.actualGridKWh
+        ? calculateBillingCycleAnalysis(billingData.totalKWh, cycle.actualGridKWh, ratesToUse)
+        : null;
       const appliedRate = cycle.appliedRateId
         ? municipalRates.find((r) => r.id === cycle.appliedRateId)?.tier || "Auto"
         : "Auto";
 
+      const totalGridCost = analysis?.totalGridCost || 0;
+      const solarSavings = analysis?.solarOffset || 0;
+
       csvData.push(
-        `${cycle.startDate},${cycle.endDate},${(analysis.billingData.totalKWh || 0).toFixed(2)},${(cycle.actualGridKWh || 0).toFixed(2)},${((analysis.billingData.totalKWh || 0) + (cycle.actualGridKWh || 0)).toFixed(2)},${(analysis.tierBreakdown.tier1Cost || 0).toFixed(2)},${(analysis.tierBreakdown.tier2Cost || 0).toFixed(2)},${gridCost.toFixed(2)},${(analysis.savings || 0).toFixed(2)},${appliedRate}`
+        `${cycle.startDate},${cycle.endDate},${billingData.totalKWh.toFixed(2)},${(cycle.actualGridKWh || 0).toFixed(2)},${(billingData.totalKWh + (cycle.actualGridKWh || 0)).toFixed(2)},${tierBreakdown.tier1Cost.toFixed(2)},${tierBreakdown.tier2Cost.toFixed(2)},${totalGridCost.toFixed(2)},${solarSavings.toFixed(2)},${appliedRate}`
       );
     });
 
