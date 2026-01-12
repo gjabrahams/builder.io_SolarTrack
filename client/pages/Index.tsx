@@ -42,6 +42,7 @@ export default function Index() {
   const [billingMonth, setBillingMonth] = useState(formatDate(new Date()).slice(0, 7));
   const [billingStart, setBillingStart] = useState(formatDate(new Date()));
   const [billingEnd, setBillingEnd] = useState(formatDate(new Date()));
+  const [editingBillingCycleId, setEditingBillingCycleId] = useState<string | null>(null);
 
   // Municipal rates state
   const [municipalRates, setMunicipalRates] = useState<MunicipalRate[]>([]);
