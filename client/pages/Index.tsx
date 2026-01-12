@@ -1646,7 +1646,7 @@ export default function Index() {
                   <div className="space-y-6">
                     {/* Toggle between Years and Months */}
                     <div className="flex gap-2 justify-between items-center flex-wrap">
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Button
                           variant={comparisonMode === "months" ? "default" : "outline"}
                           onClick={() => setComparisonMode("months")}
@@ -1663,6 +1663,20 @@ export default function Index() {
                           <TrendingUp className="h-4 w-4" />
                           Last 5 Years
                         </Button>
+                        <Button
+                          variant={comparisonMode === "sameMonth" ? "default" : "outline"}
+                          onClick={() => {
+                            setComparisonMode("sameMonth");
+                            const firstCycleMonth = billingCycles[0]?.month;
+                            if (firstCycleMonth && !selectedComparisonMonth) {
+                              setSelectedComparisonMonth(firstCycleMonth.split("-")[1]);
+                            }
+                          }}
+                          className="gap-2"
+                        >
+                          <Calendar className="h-4 w-4" />
+                          Same Month (Years)
+                        </Button>
                       </div>
                       <Button
                         onClick={exportBillingData}
@@ -1674,6 +1688,40 @@ export default function Index() {
                         Export Comparison Data
                       </Button>
                     </div>
+
+                    {/* Month selector for same month comparison */}
+                    {comparisonMode === "sameMonth" && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium block">Select Month to Compare Across Years</label>
+                        <Select
+                          value={selectedComparisonMonth || ""}
+                          onValueChange={setSelectedComparisonMonth}
+                        >
+                          <SelectTrigger className="w-full sm:w-64">
+                            <SelectValue placeholder="Select a month" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from(
+                              new Set(
+                                billingCycles
+                                  .map((cycle) => {
+                                    const [, month] = cycle.month.split("-");
+                                    return month;
+                                  })
+                              )
+                            )
+                              .sort()
+                              .map((month) => (
+                                <SelectItem key={month} value={month}>
+                                  {new Date(2024, parseInt(month) - 1).toLocaleDateString("en-US", {
+                                    month: "long",
+                                  })}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
                     {/* Comparison Table */}
                     <div className="overflow-x-auto">
