@@ -55,7 +55,8 @@ export default function Index() {
 
   // Grid usage tracking state
   const [gridUsageInput, setGridUsageInput] = useState<{ [cycleId: string]: string }>({});
-  const [comparisonMode, setComparisonMode] = useState<"years" | "months">("months");
+  const [comparisonMode, setComparisonMode] = useState<"years" | "months" | "sameMonth">("months");
+  const [selectedComparisonMonth, setSelectedComparisonMonth] = useState<string | null>(null);
 
   // CSV import state
   const [importMode, setImportMode] = useState(false);
