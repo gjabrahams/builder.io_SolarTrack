@@ -1274,7 +1274,7 @@ export default function Index() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {billingCycles.map((cycle) => {
+                    {[...billingCycles].sort((a, b) => b.id.localeCompare(a.id)).map((cycle) => {
                       const billingData = calculateBillingData(entries, cycle.startDate, cycle.endDate);
                       const effectiveRates = getEffectiveRates(cycle);
                       const tierBreakdown = calculateTierBreakdown(billingData.totalKWh, effectiveRates.length > 0 ? effectiveRates : municipalRates);
