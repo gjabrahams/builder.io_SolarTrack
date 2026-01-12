@@ -1728,7 +1728,7 @@ export default function Index() {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-border">
-                            <th className="text-left py-3 px-3 font-semibold text-foreground">{comparisonMode === "months" ? "Month" : "Year"}</th>
+                            <th className="text-left py-3 px-3 font-semibold text-foreground">{comparisonMode === "months" ? "Month" : comparisonMode === "years" ? "Year" : "Year"}</th>
                             <th className="text-right py-3 px-3 font-semibold text-foreground">Generated (kWh)</th>
                             <th className="text-right py-3 px-3 font-semibold text-foreground">Grid Usage (kWh)</th>
                             <th className="text-right py-3 px-3 font-semibold text-foreground">Grid Cost (R$)</th>
