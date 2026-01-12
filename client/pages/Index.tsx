@@ -166,14 +166,39 @@ export default function Index() {
       return;
     }
 
-    const newCycle: BillingCycle = {
-      id: `${Date.now()}`,
-      month: billingMonth,
-      startDate: billingStart,
-      endDate: billingEnd,
-    };
+    if (editingBillingCycleId) {
+      const updated = billingCycles.map((c) =>
+        c.id === editingBillingCycleId
+          ? { ...c, month: billingMonth, startDate: billingStart, endDate: billingEnd }
+          : c
+      );
+      setBillingCycles(updated);
+      setEditingBillingCycleId(null);
+    } else {
+      const newCycle: BillingCycle = {
+        id: `${Date.now()}`,
+        month: billingMonth,
+        startDate: billingStart,
+        endDate: billingEnd,
+      };
 
-    setBillingCycles([...billingCycles, newCycle]);
+      setBillingCycles([newCycle, ...billingCycles]);
+    }
+
+    setBillingMonth(formatDate(new Date()).slice(0, 7));
+    setBillingStart(formatDate(new Date()));
+    setBillingEnd(formatDate(new Date()));
+  };
+
+  const handleEditBillingCycle = (cycle: BillingCycle) => {
+    setEditingBillingCycleId(cycle.id);
+    setBillingMonth(cycle.month);
+    setBillingStart(cycle.startDate);
+    setBillingEnd(cycle.endDate);
+  };
+
+  const handleCancelEditBillingCycle = () => {
+    setEditingBillingCycleId(null);
     setBillingMonth(formatDate(new Date()).slice(0, 7));
     setBillingStart(formatDate(new Date()));
     setBillingEnd(formatDate(new Date()));
