@@ -1776,7 +1776,7 @@ export default function Index() {
                                     <td className="py-3 px-3 text-right text-green-600 font-semibold">R{data.solarSavings.toFixed(2)}</td>
                                   </tr>
                                 ));
-                            } else {
+                            } else if (comparisonMode === "years") {
                               // Group by year and get last 5
                               const yearMap = new Map<number, { generated: number; gridUsage: number; gridCost: number; solarSavings: number }>();
 
@@ -1807,6 +1807,48 @@ export default function Index() {
                               return Array.from(yearMap.entries())
                                 .sort((a, b) => b[0] - a[0])
                                 .slice(0, 5)
+                                .map(([year, data]) => (
+                                  <tr key={year} className="border-b border-border hover:bg-muted/50">
+                                    <td className="py-3 px-3 font-medium">{year}</td>
+                                    <td className="py-3 px-3 text-right text-solar-energy font-semibold">{data.generated.toFixed(1)}</td>
+                                    <td className="py-3 px-3 text-right">{data.gridUsage.toFixed(1)}</td>
+                                    <td className="py-3 px-3 text-right text-red-600 font-semibold">R{data.gridCost.toFixed(2)}</td>
+                                    <td className="py-3 px-3 text-right text-green-600 font-semibold">R{data.solarSavings.toFixed(2)}</td>
+                                  </tr>
+                                ));
+                            } else {
+                              // Compare same month across different years
+                              const sameMonthMap = new Map<number, { generated: number; gridUsage: number; gridCost: number; solarSavings: number }>();
+
+                              billingCycles.forEach((cycle) => {
+                                const [year, month] = cycle.month.split("-");
+                                if (selectedComparisonMonth && month === selectedComparisonMonth) {
+                                  const yearNum = parseInt(year);
+                                  const billingData = calculateBillingData(entries, cycle.startDate, cycle.endDate);
+                                  const cycleEffectiveRates = getEffectiveRates(cycle);
+                                  const ratesToUse = cycleEffectiveRates.length > 0 ? cycleEffectiveRates : municipalRates;
+                                  const tierBreakdown = calculateTierBreakdown(billingData.totalKWh, ratesToUse);
+                                  const gridCost = cycle.actualGridKWh
+                                    ? calculateTierBreakdown(cycle.actualGridKWh, ratesToUse).totalCost
+                                    : 0;
+                                  const solarSavings = cycle.actualGridKWh
+                                    ? calculateBillingCycleAnalysis(billingData.totalKWh, cycle.actualGridKWh, ratesToUse).solarOffset
+                                    : tierBreakdown.totalCost;
+
+                                  if (!sameMonthMap.has(yearNum)) {
+                                    sameMonthMap.set(yearNum, { generated: 0, gridUsage: 0, gridCost: 0, solarSavings: 0 });
+                                  }
+
+                                  const data = sameMonthMap.get(yearNum)!;
+                                  data.generated += billingData.totalKWh;
+                                  data.gridUsage += cycle.actualGridKWh || 0;
+                                  data.gridCost += gridCost;
+                                  data.solarSavings += solarSavings;
+                                }
+                              });
+
+                              return Array.from(sameMonthMap.entries())
+                                .sort((a, b) => b[0] - a[0])
                                 .map(([year, data]) => (
                                   <tr key={year} className="border-b border-border hover:bg-muted/50">
                                     <td className="py-3 px-3 font-medium">{year}</td>
