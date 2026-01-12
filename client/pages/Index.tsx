@@ -1903,14 +1903,24 @@ export default function Index() {
                             Effective: {rate.startDate} {rate.endDate ? `to ${rate.endDate}` : "(ongoing)"}
                           </p>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteMunicipalRate(rate.id)}
-                          className="text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditMunicipalRate(rate)}
+                            className="text-solar-sun hover:bg-solar-sun/10"
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteMunicipalRate(rate.id)}
+                            className="text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
