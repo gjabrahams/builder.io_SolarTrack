@@ -229,21 +229,44 @@ export default function Index() {
       return;
     }
 
-    const newRate: MunicipalRate = {
-      id: `${Date.now()}`,
-      tier,
-      maxKWh,
-      ratePerKWh: perKWh,
-      startDate: rateStartDate,
-      endDate: rateEndDate || undefined,
-    };
+    if (editingRateId) {
+      const updated = municipalRates.map((r) =>
+        r.id === editingRateId
+          ? {
+              ...r,
+              tier,
+              maxKWh,
+              ratePerKWh: perKWh,
+              startDate: rateStartDate,
+              endDate: rateEndDate || undefined,
+            }
+          : r
+      );
+      setMunicipalRates(updated.sort((a, b) => {
+        if (a.startDate !== b.startDate) {
+          return b.startDate.localeCompare(a.startDate);
+        }
+        return a.tier - b.tier;
+      }));
+      setEditingRateId(null);
+    } else {
+      const newRate: MunicipalRate = {
+        id: `${Date.now()}`,
+        tier,
+        maxKWh,
+        ratePerKWh: perKWh,
+        startDate: rateStartDate,
+        endDate: rateEndDate || undefined,
+      };
 
-    setMunicipalRates([...municipalRates, newRate].sort((a, b) => {
-      if (a.startDate !== b.startDate) {
-        return b.startDate.localeCompare(a.startDate);
-      }
-      return a.tier - b.tier;
-    }));
+      setMunicipalRates([...municipalRates, newRate].sort((a, b) => {
+        if (a.startDate !== b.startDate) {
+          return b.startDate.localeCompare(a.startDate);
+        }
+        return a.tier - b.tier;
+      }));
+    }
+
     setRateTier("");
     setRateMaxKWh("");
     setRatePerKWh("");
