@@ -278,12 +278,22 @@ export default function Index() {
     setMunicipalRates(municipalRates.filter((r) => r.id !== id));
   };
 
-  const handleEditMunicipalRate = (id: string, updates: Partial<MunicipalRate>) => {
-    setMunicipalRates(
-      municipalRates.map((r) =>
-        r.id === id ? { ...r, ...updates } : r
-      )
-    );
+  const handleEditMunicipalRate = (rate: MunicipalRate) => {
+    setEditingRateId(rate.id);
+    setRateTier(rate.tier.toString());
+    setRateMaxKWh(rate.maxKWh.toString());
+    setRatePerKWh(rate.ratePerKWh.toString());
+    setRateStartDate(rate.startDate);
+    setRateEndDate(rate.endDate || "");
+  };
+
+  const handleCancelEditRate = () => {
+    setEditingRateId(null);
+    setRateTier("");
+    setRateMaxKWh("");
+    setRatePerKWh("");
+    setRateStartDate(formatDate(new Date()));
+    setRateEndDate("");
   };
 
   const handleUpdateGridUsage = (cycleId: string, gridKWh: string) => {
