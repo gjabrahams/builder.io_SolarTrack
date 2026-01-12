@@ -1292,14 +1292,24 @@ export default function Index() {
                                 {cycle.startDate} to {cycle.endDate} ({billingData.days} days)
                               </p>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteBillingCycle(cycle.id)}
-                              className="text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditBillingCycle(cycle)}
+                                className="text-solar-sky hover:bg-solar-sky/10"
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteBillingCycle(cycle.id)}
+                                className="text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-2 gap-4 mb-3 p-3 bg-muted/50 rounded">
