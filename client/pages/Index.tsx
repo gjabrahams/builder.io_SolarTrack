@@ -1212,9 +1212,9 @@ export default function Index() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-solar-sky" />
-                  Set Billing Cycle Dates
+                  {editingBillingCycleId ? "Edit Billing Cycle" : "Set Billing Cycle Dates"}
                 </CardTitle>
-                <CardDescription>Define custom date ranges for your billing periods</CardDescription>
+                <CardDescription>{editingBillingCycleId ? "Update the billing cycle details" : "Define custom date ranges for your billing periods"}</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleAddBillingCycle} className="space-y-4">
@@ -1243,14 +1243,24 @@ export default function Index() {
                         onChange={(e) => setBillingEnd(e.target.value)}
                       />
                     </div>
-                    <div className="flex items-end">
+                    <div className="flex items-end gap-2">
                       <Button
                         type="submit"
-                        className="w-full gap-2 bg-solar-sky hover:bg-solar-sky/90"
+                        className="flex-1 gap-2 bg-solar-sky hover:bg-solar-sky/90"
                       >
                         <Plus className="h-4 w-4" />
-                        Add Cycle
+                        {editingBillingCycleId ? "Update" : "Add"} Cycle
                       </Button>
+                      {editingBillingCycleId && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleCancelEditBillingCycle}
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </form>
