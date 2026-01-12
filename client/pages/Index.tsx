@@ -1800,11 +1800,12 @@ export default function Index() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sun className="h-5 w-5 text-solar-sun" />
-                  Municipal Electricity Rates
+                  {editingRateId ? "Edit Rate Tier" : "Municipal Electricity Rates"}
                 </CardTitle>
                 <CardDescription>
-                  Set tiered rates for your municipal electricity grid. Savings are calculated by
-                  multiplying your solar generation by these rates.
+                  {editingRateId
+                    ? "Update the rate tier details"
+                    : "Set tiered rates for your municipal electricity grid. Savings are calculated by multiplying your solar generation by these rates."}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1857,14 +1858,24 @@ export default function Index() {
                         onChange={(e) => setRateEndDate(e.target.value)}
                       />
                     </div>
-                    <div className="flex items-end">
+                    <div className="flex items-end gap-2">
                       <Button
                         type="submit"
-                        className="w-full gap-2 bg-solar-sun hover:bg-solar-sun/90"
+                        className="flex-1 gap-2 bg-solar-sun hover:bg-solar-sun/90"
                       >
                         <Plus className="h-4 w-4" />
-                        Add Rate
+                        {editingRateId ? "Update" : "Add"} Rate
                       </Button>
+                      {editingRateId && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleCancelEditRate}
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </form>
