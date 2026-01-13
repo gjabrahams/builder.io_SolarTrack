@@ -1394,6 +1394,45 @@ export default function Index() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-solar-sky" />
+                  Import Billing Cycles
+                </CardTitle>
+                <CardDescription>Import billing cycle dates from a CSV file</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium block">CSV File Upload</label>
+                    <input
+                      type="file"
+                      accept=".csv,.txt"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) {
+                          handleImportBillingCyclesFile(e.target.files[0]);
+                          e.target.value = "";
+                        }
+                      }}
+                      className="block w-full text-sm border border-border rounded-md p-2"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Format: Month (YYYY-MM), Start Date (YYYY-MM-DD), End Date (YYYY-MM-DD)
+                    </p>
+                    <Button
+                      onClick={downloadBillingCyclesExample}
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 gap-2"
+                    >
+                      <Calendar className="h-3 w-3" />
+                      Download Example CSV
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-solar-sky" />
                   {editingBillingCycleId ? "Edit Billing Cycle" : "Set Billing Cycle Dates"}
                 </CardTitle>
                 <CardDescription>{editingBillingCycleId ? "Update the billing cycle details" : "Define custom date ranges for your billing periods"}</CardDescription>
