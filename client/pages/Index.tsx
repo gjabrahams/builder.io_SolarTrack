@@ -204,6 +204,71 @@ export default function Index() {
     setBillingEnd(formatDate(new Date()));
   };
 
+  const handleImportBillingCyclesFile = async (file: File) => {
+    const text = await file.text();
+    const lines = text.trim().split("\n");
+
+    const newCycles: BillingCycle[] = [];
+
+    lines.forEach((line) => {
+      const columns = line.split(/[,\t]+/).map((v) => v.trim());
+      if (columns.length >= 3) {
+        try {
+          const month = columns[0];
+          const startDate = columns[1];
+          const endDate = columns[2];
+
+          if (month && startDate && endDate) {
+            const monthRegex = /^\d{4}-\d{2}$/;
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+            if (monthRegex.test(month) && dateRegex.test(startDate) && dateRegex.test(endDate)) {
+              const cycle: BillingCycle = {
+                id: `${Date.now()}-${Math.random()}`,
+                month,
+                startDate,
+                endDate,
+              };
+              newCycles.push(cycle);
+            }
+          }
+        } catch (error) {
+          console.error("Error parsing line:", line, error);
+        }
+      }
+    });
+
+    if (newCycles.length === 0) {
+      alert("No valid billing cycles found in the file");
+      return;
+    }
+
+    setBillingCycles([...newCycles, ...billingCycles]);
+    alert(`Imported ${newCycles.length} billing cycles`);
+  };
+
+  const downloadBillingCyclesExample = () => {
+    const exampleData = [
+      "Month,Start Date,End Date",
+      "2025-01,2025-01-01,2025-02-15",
+      "2025-02,2025-02-16,2025-03-15",
+      "2025-03,2025-03-16,2025-04-15",
+    ];
+
+    const csvContent = exampleData.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "billing-cycles-example.csv");
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleDeleteBillingCycle = (id: string) => {
     setBillingCycles(billingCycles.filter((c) => c.id !== id));
   };
