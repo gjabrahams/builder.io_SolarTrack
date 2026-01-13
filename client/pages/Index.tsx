@@ -361,6 +361,79 @@ export default function Index() {
     setRateEndDate("");
   };
 
+  const handleImportRateTiersFile = async (file: File) => {
+    const text = await file.text();
+    const lines = text.trim().split("\n");
+
+    const newRates: MunicipalRate[] = [];
+
+    lines.forEach((line) => {
+      const columns = line.split(/[,\t]+/).map((v) => v.trim());
+      if (columns.length >= 4) {
+        try {
+          const tier = parseInt(columns[0]);
+          const maxKWh = parseFloat(columns[1]);
+          const ratePerKWh = parseFloat(columns[2]);
+          const startDate = columns[3];
+          const endDate = columns[4] ? columns[4] : undefined;
+
+          if (!isNaN(tier) && !isNaN(maxKWh) && !isNaN(ratePerKWh) && startDate) {
+            if (tier > 0 && maxKWh > 0 && ratePerKWh >= 0) {
+              const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+              if (dateRegex.test(startDate) && (!endDate || dateRegex.test(endDate))) {
+                const rate: MunicipalRate = {
+                  id: `${Date.now()}-${Math.random()}`,
+                  tier,
+                  maxKWh,
+                  ratePerKWh,
+                  startDate,
+                  endDate,
+                };
+                newRates.push(rate);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error parsing line:", line, error);
+        }
+      }
+    });
+
+    if (newRates.length === 0) {
+      alert("No valid rate tiers found in the file");
+      return;
+    }
+
+    setMunicipalRates([...newRates, ...municipalRates].sort((a, b) => {
+      if (a.startDate !== b.startDate) {
+        return b.startDate.localeCompare(a.startDate);
+      }
+      return a.tier - b.tier;
+    }));
+    alert(`Imported ${newRates.length} rate tiers`);
+  };
+
+  const downloadRateTiersExample = () => {
+    const exampleData = [
+      "Tier,Max kWh,Rate per kWh,Start Date,End Date",
+      "1,350,0.75,2025-01-01,",
+      "2,500,0.95,2025-01-01,",
+    ];
+
+    const csvContent = exampleData.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "rate-tiers-example.csv");
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleUpdateGridUsage = (cycleId: string, gridKWh: string) => {
     const cycle = billingCycles.find((c) => c.id === cycleId);
     if (cycle) {
