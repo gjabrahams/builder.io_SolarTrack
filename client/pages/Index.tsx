@@ -486,6 +486,39 @@ export default function Index() {
     document.body.removeChild(link);
   };
 
+  const exportAllDailyEntries = () => {
+    if (entries.length === 0) {
+      alert("No entries to export");
+      return;
+    }
+
+    const timestamp = new Date().toISOString().split("T")[0];
+    const csvData = ["Date,Solar kWh"];
+
+    entries.forEach((entry) => {
+      const date = new Date(entry.date);
+      const formattedDate = date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+      csvData.push(`${formattedDate},${entry.kWh}`);
+    });
+
+    const csvContent = csvData.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", `solar-entries-${timestamp}.csv`);
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const exportAllData = () => {
     const timestamp = new Date().toISOString().split("T")[0];
     const csvData = [];
