@@ -424,7 +424,7 @@ export default function Index() {
             const formattedDate = formatDate(date);
             const solarKWh = parseFloat(columns[1]);
 
-            if (!isNaN(solarKWh) && solarKWh > 0) {
+            if (!isNaN(solarKWh) && solarKWh >= 0) {
               newEntries.push({
                 date: formattedDate,
                 kWh: solarKWh,
