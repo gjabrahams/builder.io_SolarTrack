@@ -8,10 +8,79 @@ import type {
   AllDataResponse,
 } from "../../shared/api";
 
+// Track if migration has been run in this instance
+let migrationRun = false;
+
+// Ensure database tables exist before any operation
+async function ensureTables(sql: ReturnType<typeof neon>) {
+  if (migrationRun) return;
+
+  try {
+    // Create daily_entries table
+    await sql(`
+      CREATE TABLE IF NOT EXISTS daily_entries (
+        id SERIAL PRIMARY KEY,
+        date DATE NOT NULL UNIQUE,
+        kwh DECIMAL(10, 2) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    // Create billing_cycles table
+    await sql(`
+      CREATE TABLE IF NOT EXISTS billing_cycles (
+        id VARCHAR(50) PRIMARY KEY,
+        month VARCHAR(7) NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        actual_grid_kwh DECIMAL(10, 2),
+        applied_rate_id VARCHAR(50),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    // Create municipal_rates table
+    await sql(`
+      CREATE TABLE IF NOT EXISTS municipal_rates (
+        id VARCHAR(50) PRIMARY KEY,
+        tier INTEGER NOT NULL,
+        max_kwh DECIMAL(10, 2) NOT NULL,
+        rate_per_kwh DECIMAL(10, 4) NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    // Create indexes for better query performance
+    await sql(`
+      CREATE INDEX IF NOT EXISTS idx_daily_entries_date ON daily_entries(date)
+    `);
+
+    await sql(`
+      CREATE INDEX IF NOT EXISTS idx_billing_cycles_month ON billing_cycles(month)
+    `);
+
+    await sql(`
+      CREATE INDEX IF NOT EXISTS idx_municipal_rates_start_date ON municipal_rates(start_date)
+    `);
+
+    migrationRun = true;
+    console.log("Database tables ensured successfully");
+  } catch (error) {
+    console.error("Error ensuring database tables:", error);
+    throw error;
+  }
+}
+
 // Get all data (entries, billing cycles, and rates)
 export const getAllData: RequestHandler = async (_req, res) => {
   try {
     const sql = neon();
+    await ensureTables(sql);
 
     const [entriesResult, cyclesResult, ratesResult] = await Promise.all([
       sql(`SELECT date, kwh FROM daily_entries ORDER BY date ASC`),
@@ -62,6 +131,7 @@ export const getAllData: RequestHandler = async (_req, res) => {
 export const saveAllData: RequestHandler = async (req, res) => {
   try {
     const sql = neon();
+    await ensureTables(sql);
     const { entries, billingCycles, municipalRates } = req.body as AllDataResponse;
 
     // Clear existing data and insert new data
@@ -121,6 +191,7 @@ export const saveAllData: RequestHandler = async (req, res) => {
 export const getEntries: RequestHandler = async (_req, res) => {
   try {
     const sql = neon();
+    await ensureTables(sql);
     const result = await sql(`SELECT date, kwh FROM daily_entries ORDER BY date ASC`);
 
     const entries: DailyEntry[] = result.map((row: any) => ({
@@ -139,6 +210,7 @@ export const getEntries: RequestHandler = async (_req, res) => {
 export const upsertEntry: RequestHandler = async (req, res) => {
   try {
     const sql = neon();
+    await ensureTables(sql);
     const { date, kWh } = req.body as DailyEntry;
 
     await sql(
@@ -160,6 +232,7 @@ export const upsertEntry: RequestHandler = async (req, res) => {
 export const deleteEntry: RequestHandler = async (req, res) => {
   try {
     const sql = neon();
+    await ensureTables(sql);
     const { date } = req.params;
 
     await sql(`DELETE FROM daily_entries WHERE date = $1`, [date]);
@@ -176,6 +249,7 @@ export const deleteEntry: RequestHandler = async (req, res) => {
 export const getBillingCycles: RequestHandler = async (_req, res) => {
   try {
     const sql = neon();
+    await ensureTables(sql);
     const result = await sql(
       `SELECT id, month, start_date, end_date, actual_grid_kwh, applied_rate_id
        FROM billing_cycles ORDER BY start_date DESC`
@@ -201,6 +275,7 @@ export const getBillingCycles: RequestHandler = async (_req, res) => {
 export const upsertBillingCycle: RequestHandler = async (req, res) => {
   try {
     const sql = neon();
+    await ensureTables(sql);
     const cycle = req.body as BillingCycle;
 
     await sql(
@@ -222,6 +297,7 @@ export const upsertBillingCycle: RequestHandler = async (req, res) => {
 export const deleteBillingCycle: RequestHandler = async (req, res) => {
   try {
     const sql = neon();
+    await ensureTables(sql);
     const { id } = req.params;
 
     await sql(`DELETE FROM billing_cycles WHERE id = $1`, [id]);
@@ -238,6 +314,7 @@ export const deleteBillingCycle: RequestHandler = async (req, res) => {
 export const getMunicipalRates: RequestHandler = async (_req, res) => {
   try {
     const sql = neon();
+    await ensureTables(sql);
     const result = await sql(
       `SELECT id, tier, max_kwh, rate_per_kwh, start_date, end_date
        FROM municipal_rates ORDER BY start_date DESC, tier ASC`
@@ -263,6 +340,7 @@ export const getMunicipalRates: RequestHandler = async (_req, res) => {
 export const upsertMunicipalRate: RequestHandler = async (req, res) => {
   try {
     const sql = neon();
+    await ensureTables(sql);
     const rate = req.body as MunicipalRate;
 
     await sql(
@@ -284,6 +362,7 @@ export const upsertMunicipalRate: RequestHandler = async (req, res) => {
 export const deleteMunicipalRate: RequestHandler = async (req, res) => {
   try {
     const sql = neon();
+    await ensureTables(sql);
     const { id } = req.params;
 
     await sql(`DELETE FROM municipal_rates WHERE id = $1`, [id]);
