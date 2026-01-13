@@ -682,13 +682,13 @@ export default function Index() {
 
     Object.entries(rangeEntries).forEach(([date, kWhStr]) => {
       const kWh = parseFloat(kWhStr);
-      if (kWh > 0) {
+      if (kWhStr !== "" && !isNaN(kWh) && kWh >= 0) {
         newEntries.push({ date, kWh });
       }
     });
 
     if (newEntries.length === 0) {
-      alert("Please enter at least one positive kWh value");
+      alert("Please enter at least one valid kWh value (0 or greater)");
       return;
     }
 
