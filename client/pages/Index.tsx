@@ -127,8 +127,8 @@ export default function Index() {
 
   const handleAddDailyEntry = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!dailyDate || !dailyKWh || parseFloat(dailyKWh) <= 0) {
-      alert("Please enter a valid date and positive kWh value");
+    if (!dailyDate || dailyKWh === "" || parseFloat(dailyKWh) < 0 || isNaN(parseFloat(dailyKWh))) {
+      alert("Please enter a valid date and non-negative kWh value");
       return;
     }
 
