@@ -362,7 +362,7 @@ export default function Index() {
       .trim()
       .split(/[\t\s,]+/)
       .map((v) => parseFloat(v.trim()))
-      .filter((v) => !isNaN(v));
+      .filter((v) => !isNaN(v) && v >= 0);
 
     if (values.length === 0) {
       alert("No valid numbers found in the data");
