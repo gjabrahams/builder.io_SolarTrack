@@ -2111,6 +2111,45 @@ export default function Index() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sun className="h-5 w-5 text-solar-sun" />
+                  Import Rate Tiers
+                </CardTitle>
+                <CardDescription>Import electricity rate tiers from a CSV file</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium block">CSV File Upload</label>
+                    <input
+                      type="file"
+                      accept=".csv,.txt"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) {
+                          handleImportRateTiersFile(e.target.files[0]);
+                          e.target.value = "";
+                        }
+                      }}
+                      className="block w-full text-sm border border-border rounded-md p-2"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Format: Tier, Max kWh, Rate per kWh, Start Date (YYYY-MM-DD), End Date (optional)
+                    </p>
+                    <Button
+                      onClick={downloadRateTiersExample}
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 gap-2"
+                    >
+                      <Sun className="h-3 w-3" />
+                      Download Example CSV
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sun className="h-5 w-5 text-solar-sun" />
                   {editingRateId ? "Edit Rate Tier" : "Municipal Electricity Rates"}
                 </CardTitle>
                 <CardDescription>
