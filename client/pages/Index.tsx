@@ -780,15 +780,26 @@ export default function Index() {
                 <CardContent className="pt-6">
                   <div className="flex flex-wrap gap-2">
                     {entries.length > 0 && (
-                      <Button
-                        onClick={exportAllData}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                      >
-                        <Sun className="h-3 w-3" />
-                        Export All Data
-                      </Button>
+                      <>
+                        <Button
+                          onClick={exportAllDailyEntries}
+                          variant="outline"
+                          size="sm"
+                          className="gap-2"
+                        >
+                          <Sun className="h-3 w-3" />
+                          Export Daily Entries (Reimportable)
+                        </Button>
+                        <Button
+                          onClick={exportAllData}
+                          variant="outline"
+                          size="sm"
+                          className="gap-2"
+                        >
+                          <Sun className="h-3 w-3" />
+                          Export All Data
+                        </Button>
+                      </>
                     )}
                   </div>
                 </CardContent>
