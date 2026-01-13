@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,6 +24,9 @@ import {
   Zap,
   Plus,
   Trash2,
+  CloudOff,
+  Cloud,
+  Loader2,
 } from "lucide-react";
 import { MonthlyCalendar } from "@/components/MonthlyCalendar";
 import {
@@ -44,6 +47,16 @@ import {
   calculateGridCost,
   getApplicableRates,
 } from "@/lib/solarCalculations";
+import {
+  fetchAllData,
+  saveAllData,
+  upsertEntry as apiUpsertEntry,
+  deleteEntry as apiDeleteEntry,
+  upsertBillingCycle as apiUpsertBillingCycle,
+  deleteBillingCycle as apiDeleteBillingCycle,
+  upsertMunicipalRate as apiUpsertMunicipalRate,
+  deleteMunicipalRate as apiDeleteMunicipalRate,
+} from "@/lib/api";
 
 export default function Index() {
   const [entries, setEntries] = useState<DailyEntry[]>([]);
@@ -51,6 +64,14 @@ export default function Index() {
   const [dailyDate, setDailyDate] = useState(formatDate(new Date()));
   const [dailyKWh, setDailyKWh] = useState("");
   const [activeTab, setActiveTab] = useState("input");
+
+  // Database sync state
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const dataLoadedRef = useRef(false);
 
   // Bulk entry mode state
   const [rangeMode, setRangeMode] = useState(false);
@@ -98,66 +119,138 @@ export default function Index() {
   const [importData, setImportData] = useState("");
   const [importSolarOnly, setImportSolarOnly] = useState(true);
 
-  // Load from localStorage
-  useEffect(() => {
-    const savedEntries = localStorage.getItem("solarEntries");
-    const savedCycles = localStorage.getItem("billingCycles");
-    const savedRates = localStorage.getItem("municipalRates");
-
-    if (savedEntries) {
-      try {
-        setEntries(JSON.parse(savedEntries));
-      } catch (e) {
-        console.error("Failed to parse solarEntries:", e);
+  // Debounced save function
+  const debouncedSave = useCallback(
+    async (
+      newEntries: DailyEntry[],
+      newCycles: BillingCycle[],
+      newRates: MunicipalRate[]
+    ) => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
       }
-    }
-    if (savedCycles) {
+
+      saveTimeoutRef.current = setTimeout(async () => {
+        if (!dataLoadedRef.current) return;
+
+        setIsSyncing(true);
+        setSyncError(null);
+        try {
+          await saveAllData({
+            entries: newEntries,
+            billingCycles: newCycles,
+            municipalRates: newRates,
+          });
+          setIsOnline(true);
+        } catch (error) {
+          console.error("Failed to save to database:", error);
+          setSyncError(
+            error instanceof Error ? error.message : "Failed to sync data"
+          );
+          setIsOnline(false);
+          // Save to localStorage as fallback
+          localStorage.setItem("solarEntries", JSON.stringify(newEntries));
+          localStorage.setItem("billingCycles", JSON.stringify(newCycles));
+          localStorage.setItem("municipalRates", JSON.stringify(newRates));
+        } finally {
+          setIsSyncing(false);
+        }
+      }, 500);
+    },
+    []
+  );
+
+  // Load data from API on mount
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
       try {
-        const cycles = JSON.parse(savedCycles);
-        setBillingCycles(cycles);
+        const data = await fetchAllData();
+        setEntries(data.entries);
+        setBillingCycles(data.billingCycles);
+        setMunicipalRates(data.municipalRates);
+
         // Initialize grid usage input state from saved data
         const gridInput: { [cycleId: string]: string } = {};
-        cycles.forEach((cycle: BillingCycle) => {
+        data.billingCycles.forEach((cycle: BillingCycle) => {
           if (cycle.actualGridKWh) {
             gridInput[cycle.id] = cycle.actualGridKWh.toString();
           }
         });
         setGridUsageInput(gridInput);
-      } catch (e) {
-        console.error("Failed to parse billingCycles:", e);
+
+        setIsOnline(true);
+        dataLoadedRef.current = true;
+      } catch (error) {
+        console.error("Failed to fetch from database, using localStorage:", error);
+        setIsOnline(false);
+        setSyncError("Could not connect to database. Using local storage.");
+
+        // Fallback to localStorage
+        const savedEntries = localStorage.getItem("solarEntries");
+        const savedCycles = localStorage.getItem("billingCycles");
+        const savedRates = localStorage.getItem("municipalRates");
+
+        if (savedEntries) {
+          try {
+            setEntries(JSON.parse(savedEntries));
+          } catch (e) {
+            console.error("Failed to parse solarEntries:", e);
+          }
+        }
+        if (savedCycles) {
+          try {
+            const cycles = JSON.parse(savedCycles);
+            setBillingCycles(cycles);
+            const gridInput: { [cycleId: string]: string } = {};
+            cycles.forEach((cycle: BillingCycle) => {
+              if (cycle.actualGridKWh) {
+                gridInput[cycle.id] = cycle.actualGridKWh.toString();
+              }
+            });
+            setGridUsageInput(gridInput);
+          } catch (e) {
+            console.error("Failed to parse billingCycles:", e);
+          }
+        }
+        if (savedRates) {
+          try {
+            const rates = JSON.parse(savedRates);
+            const normalizedRates = rates.map((r: any) => ({
+              id: String(r.id),
+              tier: Number(r.tier),
+              maxKWh: Number(r.maxKWh),
+              ratePerKWh: Number(r.ratePerKWh),
+              startDate: String(r.startDate),
+              endDate: r.endDate ? String(r.endDate) : undefined,
+            }));
+            setMunicipalRates(normalizedRates);
+          } catch (e) {
+            console.error("Failed to parse or normalize municipalRates:", e);
+          }
+        }
+        dataLoadedRef.current = true;
+      } finally {
+        setIsLoading(false);
       }
-    }
-    if (savedRates) {
-      try {
-        const rates = JSON.parse(savedRates);
-        const normalizedRates = rates.map((r: any) => ({
-          id: String(r.id),
-          tier: Number(r.tier),
-          maxKWh: Number(r.maxKWh),
-          ratePerKWh: Number(r.ratePerKWh),
-          startDate: String(r.startDate),
-          endDate: r.endDate ? String(r.endDate) : undefined,
-        }));
-        setMunicipalRates(normalizedRates);
-      } catch (e) {
-        console.error("Failed to parse or normalize municipalRates:", e);
-        localStorage.removeItem("municipalRates");
+    };
+
+    loadData();
+
+    // Cleanup on unmount
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
       }
-    }
+    };
   }, []);
 
-  // Save to localStorage
+  // Auto-save when data changes (after initial load)
   useEffect(() => {
-    localStorage.setItem("solarEntries", JSON.stringify(entries));
-  }, [entries]);
-
-  useEffect(() => {
-    localStorage.setItem("billingCycles", JSON.stringify(billingCycles));
-  }, [billingCycles]);
-
-  useEffect(() => {
-    localStorage.setItem("municipalRates", JSON.stringify(municipalRates));
-  }, [municipalRates]);
+    if (dataLoadedRef.current) {
+      debouncedSave(entries, billingCycles, municipalRates);
+    }
+  }, [entries, billingCycles, municipalRates, debouncedSave]);
 
   const handleAddDailyEntry = (e: React.FormEvent) => {
     e.preventDefault();
@@ -960,6 +1053,18 @@ export default function Index() {
 
   const rangeDates = rangeMode ? getDatesBetween(rangeStart, rangeEnd) : [];
 
+  // Show loading state while fetching initial data
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-solar-sky/10 via-background to-solar-energy/5">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-solar-sun" />
+          <p className="text-muted-foreground">Loading your solar data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-solar-sky/10 via-background to-solar-energy/5">
       {/* Header */}
@@ -979,11 +1084,35 @@ export default function Index() {
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Total Entries</p>
-              <p className="text-2xl font-bold text-solar-energy">
-                {entries.length}
-              </p>
+            <div className="flex items-center gap-4">
+              {/* Sync status indicator */}
+              <div className="flex items-center gap-2">
+                {isSyncing ? (
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="hidden sm:inline">Saving...</span>
+                  </div>
+                ) : isOnline ? (
+                  <div className="flex items-center gap-1.5 text-sm text-green-600">
+                    <Cloud className="h-4 w-4" />
+                    <span className="hidden sm:inline">Synced</span>
+                  </div>
+                ) : (
+                  <div
+                    className="flex items-center gap-1.5 text-sm text-yellow-600"
+                    title={syncError || "Offline mode"}
+                  >
+                    <CloudOff className="h-4 w-4" />
+                    <span className="hidden sm:inline">Offline</span>
+                  </div>
+                )}
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Total Entries</p>
+                <p className="text-2xl font-bold text-solar-energy">
+                  {entries.length}
+                </p>
+              </div>
             </div>
           </div>
         </div>
