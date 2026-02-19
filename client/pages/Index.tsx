@@ -24,6 +24,7 @@ import {
   Zap,
   Plus,
   Trash2,
+  User,
 } from "lucide-react";
 import { MonthlyCalendar } from "@/components/MonthlyCalendar";
 import {
@@ -51,6 +52,16 @@ export default function Index() {
   const [dailyDate, setDailyDate] = useState(formatDate(new Date()));
   const [dailyKWh, setDailyKWh] = useState("");
   const [activeTab, setActiveTab] = useState("input");
+
+  // Profile management state
+  const [profiles, setProfiles] = useState<string[]>(() => {
+    const saved = localStorage.getItem("solarProfiles");
+    return saved ? JSON.parse(saved) : ["Default"];
+  });
+  const [activeProfile, setActiveProfile] = useState(() => {
+    return localStorage.getItem("solarActiveProfile") || "Default";
+  });
+  const [newProfileName, setNewProfileName] = useState("");
 
   // Bulk entry mode state
   const [rangeMode, setRangeMode] = useState(false);
@@ -98,19 +109,49 @@ export default function Index() {
   const [importData, setImportData] = useState("");
   const [importSolarOnly, setImportSolarOnly] = useState(true);
 
-  // Load from localStorage
+  // Save profiles metadata
   useEffect(() => {
-    const savedEntries = localStorage.getItem("solarEntries");
-    const savedCycles = localStorage.getItem("billingCycles");
-    const savedRates = localStorage.getItem("municipalRates");
+    localStorage.setItem("solarProfiles", JSON.stringify(profiles));
+  }, [profiles]);
+
+  useEffect(() => {
+    localStorage.setItem("solarActiveProfile", activeProfile);
+  }, [activeProfile]);
+
+  // Load from localStorage whenever activeProfile changes
+  useEffect(() => {
+    // Reset editing states when profile changes
+    setEditingBillingCycleId(null);
+    setEditingRateId(null);
+
+    const entryKey =
+      activeProfile === "Default"
+        ? "solarEntries"
+        : `profile:${activeProfile}:solarEntries`;
+    const cycleKey =
+      activeProfile === "Default"
+        ? "billingCycles"
+        : `profile:${activeProfile}:billingCycles`;
+    const rateKey =
+      activeProfile === "Default"
+        ? "municipalRates"
+        : `profile:${activeProfile}:municipalRates`;
+
+    const savedEntries = localStorage.getItem(entryKey);
+    const savedCycles = localStorage.getItem(cycleKey);
+    const savedRates = localStorage.getItem(rateKey);
 
     if (savedEntries) {
       try {
         setEntries(JSON.parse(savedEntries));
       } catch (e) {
         console.error("Failed to parse solarEntries:", e);
+        setEntries([]);
       }
+    } else {
+      setEntries([]);
     }
+
     if (savedCycles) {
       try {
         const cycles = JSON.parse(savedCycles);
@@ -125,8 +166,14 @@ export default function Index() {
         setGridUsageInput(gridInput);
       } catch (e) {
         console.error("Failed to parse billingCycles:", e);
+        setBillingCycles([]);
+        setGridUsageInput({});
       }
+    } else {
+      setBillingCycles([]);
+      setGridUsageInput({});
     }
+
     if (savedRates) {
       try {
         const rates = JSON.parse(savedRates);
@@ -141,23 +188,66 @@ export default function Index() {
         setMunicipalRates(normalizedRates);
       } catch (e) {
         console.error("Failed to parse or normalize municipalRates:", e);
-        localStorage.removeItem("municipalRates");
+        setMunicipalRates([]);
       }
+    } else {
+      setMunicipalRates([]);
     }
-  }, []);
+  }, [activeProfile]);
 
   // Save to localStorage
   useEffect(() => {
-    localStorage.setItem("solarEntries", JSON.stringify(entries));
-  }, [entries]);
+    const key =
+      activeProfile === "Default"
+        ? "solarEntries"
+        : `profile:${activeProfile}:solarEntries`;
+    localStorage.setItem(key, JSON.stringify(entries));
+  }, [entries, activeProfile]);
 
   useEffect(() => {
-    localStorage.setItem("billingCycles", JSON.stringify(billingCycles));
-  }, [billingCycles]);
+    const key =
+      activeProfile === "Default"
+        ? "billingCycles"
+        : `profile:${activeProfile}:billingCycles`;
+    localStorage.setItem(key, JSON.stringify(billingCycles));
+  }, [billingCycles, activeProfile]);
 
   useEffect(() => {
-    localStorage.setItem("municipalRates", JSON.stringify(municipalRates));
-  }, [municipalRates]);
+    const key =
+      activeProfile === "Default"
+        ? "municipalRates"
+        : `profile:${activeProfile}:municipalRates`;
+    localStorage.setItem(key, JSON.stringify(municipalRates));
+  }, [municipalRates, activeProfile]);
+
+  const handleAddProfile = () => {
+    const name = newProfileName.trim();
+    if (!name) return;
+    if (profiles.includes(name)) {
+      alert("Profile already exists");
+      return;
+    }
+    setProfiles([...profiles, name]);
+    setActiveProfile(name);
+    setNewProfileName("");
+  };
+
+  const handleDeleteProfile = () => {
+    if (activeProfile === "Default") return;
+    if (confirm(`Are you sure you want to delete profile "${activeProfile}"?`)) {
+      const entryKey = `profile:${activeProfile}:solarEntries`;
+      const cycleKey = `profile:${activeProfile}:billingCycles`;
+      const rateKey = `profile:${activeProfile}:municipalRates`;
+
+      localStorage.removeItem(entryKey);
+      localStorage.removeItem(cycleKey);
+      localStorage.removeItem(rateKey);
+
+      const newProfiles = profiles.filter((p) => p !== activeProfile);
+      setProfiles(newProfiles);
+      setActiveProfile("Default");
+    }
+  };
 
   const handleAddDailyEntry = (e: React.FormEvent) => {
     e.preventDefault();
@@ -263,6 +353,7 @@ export default function Index() {
           const month = columns[0];
           const startDate = columns[1];
           const endDate = columns[2];
+          const actualGridKWhStr = columns[3];
 
           if (month && startDate && endDate) {
             const monthRegex = /^\d{4}-\d{2}$/;
@@ -273,11 +364,17 @@ export default function Index() {
               dateRegex.test(startDate) &&
               dateRegex.test(endDate)
             ) {
+              const actualGridKWh =
+                actualGridKWhStr && !isNaN(parseFloat(actualGridKWhStr))
+                  ? parseFloat(actualGridKWhStr)
+                  : undefined;
+
               const cycle: BillingCycle = {
                 id: `${Date.now()}-${Math.random()}`,
                 month,
                 startDate,
                 endDate,
+                actualGridKWh,
               };
               newCycles.push(cycle);
             }
@@ -299,10 +396,10 @@ export default function Index() {
 
   const downloadBillingCyclesExample = () => {
     const exampleData = [
-      "Month,Start Date,End Date",
-      "2025-01,2025-01-01,2025-02-15",
-      "2025-02,2025-02-16,2025-03-15",
-      "2025-03,2025-03-16,2025-04-15",
+      "Month,Start Date,End Date,Actual Grid Usage (optional)",
+      "2025-01,2025-01-01,2025-02-15,120.5",
+      "2025-02,2025-02-16,2025-03-15,",
+      "2025-03,2025-03-16,2025-04-15,145.2",
     ];
 
     const csvContent = exampleData.join("\n");
@@ -1575,7 +1672,7 @@ export default function Index() {
                     />
                     <p className="text-xs text-muted-foreground mt-1">
                       Format: Month (YYYY-MM), Start Date (YYYY-MM-DD), End Date
-                      (YYYY-MM-DD)
+                      (YYYY-MM-DD), Actual Grid Usage (kWh - optional)
                     </p>
                     <Button
                       onClick={downloadBillingCyclesExample}
@@ -1939,7 +2036,9 @@ export default function Index() {
                   </CardContent>
                 </Card>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {billingCycles.map((cycle) => {
+                  {[...billingCycles]
+                    .sort((a, b) => b.month.localeCompare(a.month))
+                    .map((cycle) => {
                     const billingData = calculateBillingData(
                       entries,
                       cycle.startDate,
@@ -2550,6 +2649,75 @@ export default function Index() {
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-solar-sky" />
+                  Data Profiles
+                </CardTitle>
+                <CardDescription>
+                  Switch between different sets of solar data (e.g. different
+                  houses or users)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium block">
+                      Active Profile
+                    </label>
+                    <div className="flex gap-2">
+                      <Select
+                        value={activeProfile}
+                        onValueChange={setActiveProfile}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select Profile" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {profiles.map((p) => (
+                            <SelectItem key={p} value={p}>
+                              {p}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {activeProfile !== "Default" && (
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={handleDeleteProfile}
+                          title="Delete Profile"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium block">
+                      Create New Profile
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Profile Name"
+                        value={newProfileName}
+                        onChange={(e) => setNewProfileName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleAddProfile();
+                        }}
+                      />
+                      <Button onClick={handleAddProfile} className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        Create
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {(entries.length > 0 ||
               billingCycles.length > 0 ||
               municipalRates.length > 0) && (
@@ -2771,7 +2939,9 @@ export default function Index() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {billingCycles.map((cycle) => {
+                    {[...billingCycles]
+                      .sort((a, b) => b.month.localeCompare(a.month))
+                      .map((cycle) => {
                       const billingData = calculateBillingData(
                         entries,
                         cycle.startDate,
