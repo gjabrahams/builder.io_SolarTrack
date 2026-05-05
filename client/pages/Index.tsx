@@ -45,6 +45,15 @@ import {
   calculateGridCost,
   getApplicableRates,
 } from "@/lib/solarCalculations";
+import {
+  db,
+  COLLECTIONS,
+  setDocument,
+  getDocuments,
+  deleteDocument,
+  subscribeToCollection,
+  batchWriteDocuments,
+} from "@/lib/firebase";
 
 export default function Index() {
   const [entries, setEntries] = useState<DailyEntry[]>([]);
@@ -109,54 +118,48 @@ export default function Index() {
   const [importData, setImportData] = useState("");
   const [importSolarOnly, setImportSolarOnly] = useState(true);
 
-  // Save profiles metadata
-  useEffect(() => {
-    localStorage.setItem("solarProfiles", JSON.stringify(profiles));
-  }, [profiles]);
-
-  useEffect(() => {
-    localStorage.setItem("solarActiveProfile", activeProfile);
-  }, [activeProfile]);
-
-  // Load from localStorage whenever activeProfile changes
+  // Load from Firebase on mount and when profile changes
   useEffect(() => {
     // Reset editing states when profile changes
     setEditingBillingCycleId(null);
     setEditingRateId(null);
 
-    const entryKey =
-      activeProfile === "Default"
-        ? "solarEntries"
-        : `profile:${activeProfile}:solarEntries`;
-    const cycleKey =
-      activeProfile === "Default"
-        ? "billingCycles"
-        : `profile:${activeProfile}:billingCycles`;
-    const rateKey =
-      activeProfile === "Default"
-        ? "municipalRates"
-        : `profile:${activeProfile}:municipalRates`;
-
-    const savedEntries = localStorage.getItem(entryKey);
-    const savedCycles = localStorage.getItem(cycleKey);
-    const savedRates = localStorage.getItem(rateKey);
-
-    if (savedEntries) {
+    const loadFromFirebase = async () => {
       try {
-        setEntries(JSON.parse(savedEntries));
-      } catch (e) {
-        console.error("Failed to parse solarEntries:", e);
-        setEntries([]);
-      }
-    } else {
-      setEntries([]);
-    }
+        // Load entries
+        const entriesData = await getDocuments(
+          `${COLLECTIONS.DAILY_ENTRIES}/${activeProfile}`
+        );
+        const entries = entriesData
+          .map((doc: any) => ({
+            date: doc.date,
+            kWh: Number(doc.kWh),
+          }))
+          .sort((a: DailyEntry, b: DailyEntry) =>
+            a.date.localeCompare(b.date)
+          );
+        setEntries(entries);
 
-    if (savedCycles) {
-      try {
-        const cycles = JSON.parse(savedCycles);
+        // Load billing cycles
+        const cyclesData = await getDocuments(
+          `${COLLECTIONS.BILLING_CYCLES}/${activeProfile}`
+        );
+        const cycles = cyclesData
+          .map((doc: any) => ({
+            id: doc.id,
+            month: doc.month,
+            startDate: doc.startDate,
+            endDate: doc.endDate,
+            actualGridKWh: doc.actualGridKWh
+              ? Number(doc.actualGridKWh)
+              : undefined,
+            appliedRateId: doc.appliedRateId,
+          }))
+          .sort((a: BillingCycle, b: BillingCycle) =>
+            b.month.localeCompare(a.month)
+          );
         setBillingCycles(cycles);
-        // Initialize grid usage input state from saved data
+
         const gridInput: { [cycleId: string]: string } = {};
         cycles.forEach((cycle: BillingCycle) => {
           if (cycle.actualGridKWh) {
@@ -164,61 +167,188 @@ export default function Index() {
           }
         });
         setGridUsageInput(gridInput);
-      } catch (e) {
-        console.error("Failed to parse billingCycles:", e);
-        setBillingCycles([]);
-        setGridUsageInput({});
-      }
-    } else {
-      setBillingCycles([]);
-      setGridUsageInput({});
-    }
 
-    if (savedRates) {
-      try {
-        const rates = JSON.parse(savedRates);
-        const normalizedRates = rates.map((r: any) => ({
-          id: String(r.id),
-          tier: Number(r.tier),
-          maxKWh: Number(r.maxKWh),
-          ratePerKWh: Number(r.ratePerKWh),
-          startDate: String(r.startDate),
-          endDate: r.endDate ? String(r.endDate) : undefined,
-        }));
-        setMunicipalRates(normalizedRates);
-      } catch (e) {
-        console.error("Failed to parse or normalize municipalRates:", e);
-        setMunicipalRates([]);
+        // Load rates
+        const ratesData = await getDocuments(
+          `${COLLECTIONS.MUNICIPAL_RATES}/${activeProfile}`
+        );
+        const rates = ratesData
+          .map((doc: any) => ({
+            id: doc.id,
+            tier: Number(doc.tier),
+            maxKWh: Number(doc.maxKWh),
+            ratePerKWh: Number(doc.ratePerKWh),
+            startDate: String(doc.startDate),
+            endDate: doc.endDate ? String(doc.endDate) : undefined,
+          }))
+          .sort(
+            (a: MunicipalRate, b: MunicipalRate) =>
+              parseDate(b.startDate).getTime() -
+              parseDate(a.startDate).getTime()
+          );
+        setMunicipalRates(rates);
+      } catch (error) {
+        console.error("Error loading from Firebase:", error);
+        // Fall back to localStorage if Firebase fails
+        const entryKey =
+          activeProfile === "Default"
+            ? "solarEntries"
+            : `profile:${activeProfile}:solarEntries`;
+        const cycleKey =
+          activeProfile === "Default"
+            ? "billingCycles"
+            : `profile:${activeProfile}:billingCycles`;
+        const rateKey =
+          activeProfile === "Default"
+            ? "municipalRates"
+            : `profile:${activeProfile}:municipalRates`;
+
+        const savedEntries = localStorage.getItem(entryKey);
+        const savedCycles = localStorage.getItem(cycleKey);
+        const savedRates = localStorage.getItem(rateKey);
+
+        if (savedEntries) {
+          setEntries(JSON.parse(savedEntries));
+        }
+        if (savedCycles) {
+          const cycles = JSON.parse(savedCycles);
+          setBillingCycles(cycles);
+          const gridInput: { [cycleId: string]: string } = {};
+          cycles.forEach((cycle: BillingCycle) => {
+            if (cycle.actualGridKWh) {
+              gridInput[cycle.id] = cycle.actualGridKWh.toString();
+            }
+          });
+          setGridUsageInput(gridInput);
+        }
+        if (savedRates) {
+          setMunicipalRates(JSON.parse(savedRates));
+        }
       }
-    } else {
-      setMunicipalRates([]);
-    }
+    };
+
+    loadFromFirebase();
   }, [activeProfile]);
 
-  // Save to localStorage
+  // Save entries to Firebase
   useEffect(() => {
-    const key =
-      activeProfile === "Default"
-        ? "solarEntries"
-        : `profile:${activeProfile}:solarEntries`;
-    localStorage.setItem(key, JSON.stringify(entries));
+    const saveEntries = async () => {
+      try {
+        const docPath = `${COLLECTIONS.DAILY_ENTRIES}/${activeProfile}`;
+        const batch: Array<{ id: string; data: any }> = entries.map(
+          (entry) => ({
+            id: entry.date,
+            data: {
+              date: entry.date,
+              kWh: entry.kWh,
+            },
+          })
+        );
+
+        if (batch.length > 0) {
+          await batchWriteDocuments(docPath, batch);
+        }
+
+        // Also save to localStorage as backup
+        const key =
+          activeProfile === "Default"
+            ? "solarEntries"
+            : `profile:${activeProfile}:solarEntries`;
+        localStorage.setItem(key, JSON.stringify(entries));
+      } catch (error) {
+        console.error("Error saving entries to Firebase:", error);
+      }
+    };
+
+    if (entries.length > 0) {
+      saveEntries();
+    }
   }, [entries, activeProfile]);
 
+  // Save billing cycles to Firebase
   useEffect(() => {
-    const key =
-      activeProfile === "Default"
-        ? "billingCycles"
-        : `profile:${activeProfile}:billingCycles`;
-    localStorage.setItem(key, JSON.stringify(billingCycles));
+    const saveCycles = async () => {
+      try {
+        const docPath = `${COLLECTIONS.BILLING_CYCLES}/${activeProfile}`;
+        const batch: Array<{ id: string; data: any }> = billingCycles.map(
+          (cycle) => ({
+            id: cycle.id,
+            data: {
+              month: cycle.month,
+              startDate: cycle.startDate,
+              endDate: cycle.endDate,
+              actualGridKWh: cycle.actualGridKWh,
+              appliedRateId: cycle.appliedRateId,
+            },
+          })
+        );
+
+        if (batch.length > 0) {
+          await batchWriteDocuments(docPath, batch);
+        }
+
+        // Also save to localStorage as backup
+        const key =
+          activeProfile === "Default"
+            ? "billingCycles"
+            : `profile:${activeProfile}:billingCycles`;
+        localStorage.setItem(key, JSON.stringify(billingCycles));
+      } catch (error) {
+        console.error("Error saving billing cycles to Firebase:", error);
+      }
+    };
+
+    if (billingCycles.length > 0) {
+      saveCycles();
+    }
   }, [billingCycles, activeProfile]);
 
+  // Save municipal rates to Firebase
   useEffect(() => {
-    const key =
-      activeProfile === "Default"
-        ? "municipalRates"
-        : `profile:${activeProfile}:municipalRates`;
-    localStorage.setItem(key, JSON.stringify(municipalRates));
+    const saveRates = async () => {
+      try {
+        const docPath = `${COLLECTIONS.MUNICIPAL_RATES}/${activeProfile}`;
+        const batch: Array<{ id: string; data: any }> = municipalRates.map(
+          (rate) => ({
+            id: rate.id,
+            data: {
+              tier: rate.tier,
+              maxKWh: rate.maxKWh,
+              ratePerKWh: rate.ratePerKWh,
+              startDate: rate.startDate,
+              endDate: rate.endDate,
+            },
+          })
+        );
+
+        if (batch.length > 0) {
+          await batchWriteDocuments(docPath, batch);
+        }
+
+        // Also save to localStorage as backup
+        const key =
+          activeProfile === "Default"
+            ? "municipalRates"
+            : `profile:${activeProfile}:municipalRates`;
+        localStorage.setItem(key, JSON.stringify(municipalRates));
+      } catch (error) {
+        console.error("Error saving municipal rates to Firebase:", error);
+      }
+    };
+
+    if (municipalRates.length > 0) {
+      saveRates();
+    }
   }, [municipalRates, activeProfile]);
+
+  // Save profiles metadata to localStorage
+  useEffect(() => {
+    localStorage.setItem("solarProfiles", JSON.stringify(profiles));
+  }, [profiles]);
+
+  useEffect(() => {
+    localStorage.setItem("solarActiveProfile", activeProfile);
+  }, [activeProfile]);
 
   const handleAddProfile = () => {
     const name = newProfileName.trim();
@@ -232,9 +362,33 @@ export default function Index() {
     setNewProfileName("");
   };
 
-  const handleDeleteProfile = () => {
+  const handleDeleteProfile = async () => {
     if (activeProfile === "Default") return;
     if (confirm(`Are you sure you want to delete profile "${activeProfile}"?`)) {
+      try {
+        // Delete from Firebase
+        const entriesPath = `${COLLECTIONS.DAILY_ENTRIES}/${activeProfile}`;
+        const cyclesPath = `${COLLECTIONS.BILLING_CYCLES}/${activeProfile}`;
+        const ratesPath = `${COLLECTIONS.MUNICIPAL_RATES}/${activeProfile}`;
+
+        const entriesDocs = await getDocuments(entriesPath);
+        const cyclesDocs = await getDocuments(cyclesPath);
+        const ratesDocs = await getDocuments(ratesPath);
+
+        for (const doc of entriesDocs) {
+          await deleteDocument(entriesPath, doc.id);
+        }
+        for (const doc of cyclesDocs) {
+          await deleteDocument(cyclesPath, doc.id);
+        }
+        for (const doc of ratesDocs) {
+          await deleteDocument(ratesPath, doc.id);
+        }
+      } catch (error) {
+        console.error("Error deleting profile from Firebase:", error);
+      }
+
+      // Delete from localStorage
       const entryKey = `profile:${activeProfile}:solarEntries`;
       const cycleKey = `profile:${activeProfile}:billingCycles`;
       const rateKey = `profile:${activeProfile}:municipalRates`;
@@ -281,8 +435,14 @@ export default function Index() {
     setDailyDate(formatDate(new Date()));
   };
 
-  const handleDeleteEntry = (date: string) => {
+  const handleDeleteEntry = async (date: string) => {
     setEntries(entries.filter((e) => e.date !== date));
+    try {
+      const docPath = `${COLLECTIONS.DAILY_ENTRIES}/${activeProfile}`;
+      await deleteDocument(docPath, date);
+    } catch (error) {
+      console.error("Error deleting entry from Firebase:", error);
+    }
   };
 
   const handleAddBillingCycle = (e: React.FormEvent) => {
@@ -416,8 +576,14 @@ export default function Index() {
     document.body.removeChild(link);
   };
 
-  const handleDeleteBillingCycle = (id: string) => {
+  const handleDeleteBillingCycle = async (id: string) => {
     setBillingCycles(billingCycles.filter((c) => c.id !== id));
+    try {
+      const docPath = `${COLLECTIONS.BILLING_CYCLES}/${activeProfile}`;
+      await deleteDocument(docPath, id);
+    } catch (error) {
+      console.error("Error deleting billing cycle from Firebase:", error);
+    }
   };
 
   const handleAddMunicipalRate = (e: React.FormEvent) => {
