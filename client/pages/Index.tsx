@@ -656,8 +656,14 @@ export default function Index() {
     setRateEndDate("");
   };
 
-  const handleDeleteMunicipalRate = (id: string) => {
+  const handleDeleteMunicipalRate = async (id: string) => {
     setMunicipalRates(municipalRates.filter((r) => r.id !== id));
+    try {
+      const docPath = `${COLLECTIONS.MUNICIPAL_RATES}/${activeProfile}`;
+      await deleteDocument(docPath, id);
+    } catch (error) {
+      console.error("Error deleting municipal rate from Firebase:", error);
+    }
   };
 
   const handleEditMunicipalRate = (rate: MunicipalRate) => {
