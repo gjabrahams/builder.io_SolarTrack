@@ -127,10 +127,16 @@ export default function Index() {
     const loadFromFirebase = async () => {
       try {
         // Load entries
-        const entriesData = await getDocuments(
-          `${COLLECTIONS.DAILY_ENTRIES}/${activeProfile}`
-        );
-        const entries = entriesData
+        let entriesData = [];
+        try {
+          entriesData = await getDocuments(
+            `${COLLECTIONS.DAILY_ENTRIES}/${activeProfile}`
+          );
+        } catch (e) {
+          console.warn("Failed to load entries from Firebase, using empty array", e);
+        }
+
+        const entries = (entriesData || [])
           .map((doc: any) => ({
             date: doc.date,
             kWh: Number(doc.kWh),
@@ -141,10 +147,16 @@ export default function Index() {
         setEntries(entries);
 
         // Load billing cycles
-        const cyclesData = await getDocuments(
-          `${COLLECTIONS.BILLING_CYCLES}/${activeProfile}`
-        );
-        const cycles = cyclesData
+        let cyclesData = [];
+        try {
+          cyclesData = await getDocuments(
+            `${COLLECTIONS.BILLING_CYCLES}/${activeProfile}`
+          );
+        } catch (e) {
+          console.warn("Failed to load billing cycles from Firebase, using empty array", e);
+        }
+
+        const cycles = (cyclesData || [])
           .map((doc: any) => ({
             id: doc.id,
             month: doc.month,
@@ -169,10 +181,16 @@ export default function Index() {
         setGridUsageInput(gridInput);
 
         // Load rates
-        const ratesData = await getDocuments(
-          `${COLLECTIONS.MUNICIPAL_RATES}/${activeProfile}`
-        );
-        const rates = ratesData
+        let ratesData = [];
+        try {
+          ratesData = await getDocuments(
+            `${COLLECTIONS.MUNICIPAL_RATES}/${activeProfile}`
+          );
+        } catch (e) {
+          console.warn("Failed to load municipal rates from Firebase, using empty array", e);
+        }
+
+        const rates = (ratesData || [])
           .map((doc: any) => ({
             id: doc.id,
             tier: Number(doc.tier),

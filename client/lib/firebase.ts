@@ -9,7 +9,6 @@ import {
   query,
   deleteDoc,
   writeBatch,
-  Query,
   Unsubscribe
 } from 'firebase/firestore';
 
@@ -24,10 +23,19 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app;
+let db;
+let isInitialized = false;
 
-// Initialize Firestore
-export const db = getFirestore(app);
+try {
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  isInitialized = true;
+  console.log("Firebase initialized successfully");
+} catch (error) {
+  console.error("Failed to initialize Firebase:", error);
+  isInitialized = false;
+}
 
 // Collection names
 export const COLLECTIONS = {
@@ -37,74 +45,167 @@ export const COLLECTIONS = {
   MUNICIPAL_RATES: 'municipal_rates',
 };
 
+// Export db instance
+export { db, isInitialized };
+
 // Helper functions for Firestore operations
 
-export async function setDocument(collectionName: string, docId: string, data: any) {
+export async function setDocument(collectionPath: string, docId: string, data: any) {
+  if (!isInitialized || !db) {
+    console.warn("Firebase not initialized");
+    return false;
+  }
+  
   try {
-    await setDoc(doc(db, collectionName, docId), data, { merge: true });
+    const parts = collectionPath.split('/');
+    if (parts.length === 2) {
+      // Nested collection path: "collectionName/parentDocId"
+      const [collectionName, parentDocId] = parts;
+      await setDoc(doc(db, collectionName, parentDocId, collectionName, docId), data, { merge: true });
+    } else {
+      // Simple collection path
+      await setDoc(doc(db, collectionPath, docId), data, { merge: true });
+    }
     return true;
   } catch (error) {
-    console.error(`Error setting document in ${collectionName}:`, error);
+    console.error(`Error setting document in ${collectionPath}:`, error);
     throw error;
   }
 }
 
-export async function getDocuments(collectionName: string) {
+export async function getDocuments(collectionPath: string) {
+  if (!isInitialized || !db) {
+    console.warn("Firebase not initialized");
+    return [];
+  }
+  
   try {
-    const snapshot = await getDocs(collection(db, collectionName));
+    const parts = collectionPath.split('/');
+    let collRef;
+    
+    if (parts.length === 2) {
+      // Nested collection path: "collectionName/parentDocId"
+      const [collectionName, parentDocId] = parts;
+      collRef = collection(db, collectionName, parentDocId, collectionName);
+    } else {
+      // Simple collection path
+      collRef = collection(db, collectionPath);
+    }
+    
+    const snapshot = await getDocs(collRef);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error(`Error getting documents from ${collectionName}:`, error);
-    throw error;
+    console.error(`Error getting documents from ${collectionPath}:`, error);
+    return [];
   }
 }
 
-export async function deleteDocument(collectionName: string, docId: string) {
+export async function deleteDocument(collectionPath: string, docId: string) {
+  if (!isInitialized || !db) {
+    console.warn("Firebase not initialized");
+    return false;
+  }
+  
   try {
-    await deleteDoc(doc(db, collectionName, docId));
+    const parts = collectionPath.split('/');
+    if (parts.length === 2) {
+      // Nested collection path: "collectionName/parentDocId"
+      const [collectionName, parentDocId] = parts;
+      await deleteDoc(doc(db, collectionName, parentDocId, collectionName, docId));
+    } else {
+      // Simple collection path
+      await deleteDoc(doc(db, collectionPath, docId));
+    }
     return true;
   } catch (error) {
-    console.error(`Error deleting document from ${collectionName}:`, error);
+    console.error(`Error deleting document from ${collectionPath}:`, error);
     throw error;
   }
 }
 
 export function subscribeToCollection(
-  collectionName: string, 
+  collectionPath: string, 
   callback: (data: any[]) => void
-): Unsubscribe {
+): Unsubscribe | null {
+  if (!isInitialized || !db) {
+    console.warn("Firebase not initialized");
+    return null;
+  }
+  
   try {
-    const q = query(collection(db, collectionName));
+    const parts = collectionPath.split('/');
+    let collRef;
+    
+    if (parts.length === 2) {
+      // Nested collection path
+      const [collectionName, parentDocId] = parts;
+      collRef = collection(db, collectionName, parentDocId, collectionName);
+    } else {
+      // Simple collection path
+      collRef = collection(db, collectionPath);
+    }
+    
+    const q = query(collRef);
     return onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       callback(data);
     });
   } catch (error) {
-    console.error(`Error subscribing to ${collectionName}:`, error);
-    throw error;
+    console.error(`Error subscribing to ${collectionPath}:`, error);
+    return null;
   }
 }
 
 export async function batchWriteDocuments(
-  collectionName: string,
+  collectionPath: string,
   documents: Array<{ id: string; data: any }>
 ) {
+  if (!isInitialized || !db) {
+    console.warn("Firebase not initialized");
+    return false;
+  }
+  
   try {
     const batch = writeBatch(db);
+    const parts = collectionPath.split('/');
+    
     documents.forEach(({ id, data }) => {
-      batch.set(doc(db, collectionName, id), data, { merge: true });
+      if (parts.length === 2) {
+        // Nested collection path
+        const [collectionName, parentDocId] = parts;
+        batch.set(doc(db, collectionName, parentDocId, collectionName, id), data, { merge: true });
+      } else {
+        // Simple collection path
+        batch.set(doc(db, collectionPath, id), data, { merge: true });
+      }
     });
+    
     await batch.commit();
     return true;
   } catch (error) {
-    console.error(`Error batch writing to ${collectionName}:`, error);
+    console.error(`Error batch writing to ${collectionPath}:`, error);
     throw error;
   }
 }
 
-export async function deleteAllDocuments(collectionName: string) {
+export async function deleteAllDocuments(collectionPath: string) {
+  if (!isInitialized || !db) {
+    console.warn("Firebase not initialized");
+    return false;
+  }
+  
   try {
-    const snapshot = await getDocs(collection(db, collectionName));
+    const parts = collectionPath.split('/');
+    let collRef;
+    
+    if (parts.length === 2) {
+      const [collectionName, parentDocId] = parts;
+      collRef = collection(db, collectionName, parentDocId, collectionName);
+    } else {
+      collRef = collection(db, collectionPath);
+    }
+    
+    const snapshot = await getDocs(collRef);
     const batch = writeBatch(db);
     snapshot.docs.forEach(doc => {
       batch.delete(doc.ref);
@@ -112,7 +213,7 @@ export async function deleteAllDocuments(collectionName: string) {
     await batch.commit();
     return true;
   } catch (error) {
-    console.error(`Error deleting all documents from ${collectionName}:`, error);
+    console.error(`Error deleting all documents from ${collectionPath}:`, error);
     throw error;
   }
 }
