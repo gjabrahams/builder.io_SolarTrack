@@ -55,6 +55,17 @@ import {
   batchWriteDocuments,
 } from "@/lib/firebase";
 
+// Helper function to remove undefined values from objects (Firestore doesn't support undefined)
+function removeUndefinedValues(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj;
+
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, v]) => v !== undefined)
+  );
+}
+
 export default function Index() {
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [billingCycles, setBillingCycles] = useState<BillingCycle[]>([]);
@@ -291,13 +302,13 @@ export default function Index() {
         const batch: Array<{ id: string; data: any }> = billingCycles.map(
           (cycle) => ({
             id: cycle.id,
-            data: {
+            data: removeUndefinedValues({
               month: cycle.month,
               startDate: cycle.startDate,
               endDate: cycle.endDate,
               actualGridKWh: cycle.actualGridKWh,
               appliedRateId: cycle.appliedRateId,
-            },
+            }),
           })
         );
 
@@ -329,13 +340,13 @@ export default function Index() {
         const batch: Array<{ id: string; data: any }> = municipalRates.map(
           (rate) => ({
             id: rate.id,
-            data: {
+            data: removeUndefinedValues({
               tier: rate.tier,
               maxKWh: rate.maxKWh,
               ratePerKWh: rate.ratePerKWh,
               startDate: rate.startDate,
               endDate: rate.endDate,
-            },
+            }),
           })
         );
 
