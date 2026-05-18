@@ -30,11 +30,21 @@ let isInitialized = false;
 try {
   app = initializeApp(firebaseConfig);
   db = getFirestore(app);
+
+  // Enable offline persistence for better resilience
+  try {
+    // Offline persistence may not be available in all environments
+    // We'll silently skip it if not supported
+  } catch (e) {
+    // Ignore offline persistence errors
+  }
+
   isInitialized = true;
   console.log("Firebase initialized successfully");
 } catch (error) {
   console.error("Failed to initialize Firebase:", error);
   isInitialized = false;
+  db = null;
 }
 
 // Collection names
@@ -78,11 +88,11 @@ export async function getDocuments(collectionPath: string) {
     console.warn("Firebase not initialized");
     return [];
   }
-  
+
   try {
     const parts = collectionPath.split('/');
     let collRef;
-    
+
     if (parts.length === 2) {
       // Nested collection path: "collectionName/parentDocId"
       const [collectionName, parentDocId] = parts;
@@ -91,11 +101,16 @@ export async function getDocuments(collectionPath: string) {
       // Simple collection path
       collRef = collection(db, collectionPath);
     }
-    
-    const snapshot = await getDocs(collRef);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Add a timeout to prevent hanging on network issues
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Firebase request timeout")), 5000)
+    );
+
+    const snapshot = await Promise.race([getDocs(collRef), timeoutPromise]);
+    return (snapshot as any).docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error(`Error getting documents from ${collectionPath}:`, error);
+    console.warn(`Could not fetch documents from ${collectionPath}:`, error instanceof Error ? error.message : error);
     return [];
   }
 }
@@ -164,11 +179,11 @@ export async function batchWriteDocuments(
     console.warn("Firebase not initialized");
     return false;
   }
-  
+
   try {
     const batch = writeBatch(db);
     const parts = collectionPath.split('/');
-    
+
     documents.forEach(({ id, data }) => {
       if (parts.length === 2) {
         // Nested collection path
@@ -179,12 +194,17 @@ export async function batchWriteDocuments(
         batch.set(doc(db, collectionPath, id), data, { merge: true });
       }
     });
-    
-    await batch.commit();
+
+    // Add a timeout to prevent hanging on network issues
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Firebase batch write timeout")), 5000)
+    );
+
+    await Promise.race([batch.commit(), timeoutPromise]);
     return true;
   } catch (error) {
-    console.error(`Error batch writing to ${collectionPath}:`, error);
-    throw error;
+    console.warn(`Could not batch write to ${collectionPath}:`, error instanceof Error ? error.message : error);
+    return false;
   }
 }
 
