@@ -24,7 +24,9 @@ import {
   Zap,
   Plus,
   Trash2,
-  User,
+  CloudOff,
+  Cloud,
+  Loader2,
 } from "lucide-react";
 import { MonthlyCalendar } from "@/components/MonthlyCalendar";
 import {
@@ -45,6 +47,15 @@ import {
   calculateGridCost,
   getApplicableRates,
 } from "@/lib/solarCalculations";
+import {
+  fetchAllData,
+  upsertEntry as apiUpsertEntry,
+  deleteEntry as apiDeleteEntry,
+  upsertBillingCycle as apiUpsertBillingCycle,
+  deleteBillingCycle as apiDeleteBillingCycle,
+  upsertMunicipalRate as apiUpsertMunicipalRate,
+  deleteMunicipalRate as apiDeleteMunicipalRate,
+} from "@/lib/api";
 
 export default function Index() {
   const [entries, setEntries] = useState<DailyEntry[]>([]);
@@ -53,15 +64,11 @@ export default function Index() {
   const [dailyKWh, setDailyKWh] = useState("");
   const [activeTab, setActiveTab] = useState("input");
 
-  // Profile management state
-  const [profiles, setProfiles] = useState<string[]>(() => {
-    const saved = localStorage.getItem("solarProfiles");
-    return saved ? JSON.parse(saved) : ["Default"];
-  });
-  const [activeProfile, setActiveProfile] = useState(() => {
-    return localStorage.getItem("solarActiveProfile") || "Default";
-  });
-  const [newProfileName, setNewProfileName] = useState("");
+  // Database sync state
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
 
   // Bulk entry mode state
   const [rangeMode, setRangeMode] = useState(false);
@@ -109,147 +116,83 @@ export default function Index() {
   const [importData, setImportData] = useState("");
   const [importSolarOnly, setImportSolarOnly] = useState(true);
 
-  // Save profiles metadata
+  // Load data from API on mount
   useEffect(() => {
-    localStorage.setItem("solarProfiles", JSON.stringify(profiles));
-  }, [profiles]);
-
-  useEffect(() => {
-    localStorage.setItem("solarActiveProfile", activeProfile);
-  }, [activeProfile]);
-
-  // Load from localStorage whenever activeProfile changes
-  useEffect(() => {
-    // Reset editing states when profile changes
-    setEditingBillingCycleId(null);
-    setEditingRateId(null);
-
-    const entryKey =
-      activeProfile === "Default"
-        ? "solarEntries"
-        : `profile:${activeProfile}:solarEntries`;
-    const cycleKey =
-      activeProfile === "Default"
-        ? "billingCycles"
-        : `profile:${activeProfile}:billingCycles`;
-    const rateKey =
-      activeProfile === "Default"
-        ? "municipalRates"
-        : `profile:${activeProfile}:municipalRates`;
-
-    const savedEntries = localStorage.getItem(entryKey);
-    const savedCycles = localStorage.getItem(cycleKey);
-    const savedRates = localStorage.getItem(rateKey);
-
-    if (savedEntries) {
+    const loadData = async () => {
+      setIsLoading(true);
       try {
-        setEntries(JSON.parse(savedEntries));
-      } catch (e) {
-        console.error("Failed to parse solarEntries:", e);
-        setEntries([]);
-      }
-    } else {
-      setEntries([]);
-    }
+        const data = await fetchAllData();
+        setEntries(data.entries);
+        setBillingCycles(data.billingCycles);
+        setMunicipalRates(data.municipalRates);
 
-    if (savedCycles) {
-      try {
-        const cycles = JSON.parse(savedCycles);
-        setBillingCycles(cycles);
         // Initialize grid usage input state from saved data
         const gridInput: { [cycleId: string]: string } = {};
-        cycles.forEach((cycle: BillingCycle) => {
+        data.billingCycles.forEach((cycle: BillingCycle) => {
           if (cycle.actualGridKWh) {
             gridInput[cycle.id] = cycle.actualGridKWh.toString();
           }
         });
         setGridUsageInput(gridInput);
-      } catch (e) {
-        console.error("Failed to parse billingCycles:", e);
-        setBillingCycles([]);
-        setGridUsageInput({});
+
+        setIsOnline(true);
+      } catch (error) {
+        console.error("Failed to fetch from database, using localStorage:", error);
+        setIsOnline(false);
+        setSyncError("Could not connect to database. Using local storage.");
+
+        // Fallback to localStorage
+        const savedEntries = localStorage.getItem("solarEntries");
+        const savedCycles = localStorage.getItem("billingCycles");
+        const savedRates = localStorage.getItem("municipalRates");
+
+        if (savedEntries) {
+          try {
+            setEntries(JSON.parse(savedEntries));
+          } catch (e) {
+            console.error("Failed to parse solarEntries:", e);
+          }
+        }
+        if (savedCycles) {
+          try {
+            const cycles = JSON.parse(savedCycles);
+            setBillingCycles(cycles);
+            const gridInput: { [cycleId: string]: string } = {};
+            cycles.forEach((cycle: BillingCycle) => {
+              if (cycle.actualGridKWh) {
+                gridInput[cycle.id] = cycle.actualGridKWh.toString();
+              }
+            });
+            setGridUsageInput(gridInput);
+          } catch (e) {
+            console.error("Failed to parse billingCycles:", e);
+          }
+        }
+        if (savedRates) {
+          try {
+            const rates = JSON.parse(savedRates);
+            const normalizedRates = rates.map((r: any) => ({
+              id: String(r.id),
+              tier: Number(r.tier),
+              maxKWh: Number(r.maxKWh),
+              ratePerKWh: Number(r.ratePerKWh),
+              startDate: String(r.startDate),
+              endDate: r.endDate ? String(r.endDate) : undefined,
+            }));
+            setMunicipalRates(normalizedRates);
+          } catch (e) {
+            console.error("Failed to parse or normalize municipalRates:", e);
+          }
+        }
+      } finally {
+        setIsLoading(false);
       }
-    } else {
-      setBillingCycles([]);
-      setGridUsageInput({});
-    }
+    };
 
-    if (savedRates) {
-      try {
-        const rates = JSON.parse(savedRates);
-        const normalizedRates = rates.map((r: any) => ({
-          id: String(r.id),
-          tier: Number(r.tier),
-          maxKWh: Number(r.maxKWh),
-          ratePerKWh: Number(r.ratePerKWh),
-          startDate: String(r.startDate),
-          endDate: r.endDate ? String(r.endDate) : undefined,
-        }));
-        setMunicipalRates(normalizedRates);
-      } catch (e) {
-        console.error("Failed to parse or normalize municipalRates:", e);
-        setMunicipalRates([]);
-      }
-    } else {
-      setMunicipalRates([]);
-    }
-  }, [activeProfile]);
+    loadData();
+  }, []);
 
-  // Save to localStorage
-  useEffect(() => {
-    const key =
-      activeProfile === "Default"
-        ? "solarEntries"
-        : `profile:${activeProfile}:solarEntries`;
-    localStorage.setItem(key, JSON.stringify(entries));
-  }, [entries, activeProfile]);
-
-  useEffect(() => {
-    const key =
-      activeProfile === "Default"
-        ? "billingCycles"
-        : `profile:${activeProfile}:billingCycles`;
-    localStorage.setItem(key, JSON.stringify(billingCycles));
-  }, [billingCycles, activeProfile]);
-
-  useEffect(() => {
-    const key =
-      activeProfile === "Default"
-        ? "municipalRates"
-        : `profile:${activeProfile}:municipalRates`;
-    localStorage.setItem(key, JSON.stringify(municipalRates));
-  }, [municipalRates, activeProfile]);
-
-  const handleAddProfile = () => {
-    const name = newProfileName.trim();
-    if (!name) return;
-    if (profiles.includes(name)) {
-      alert("Profile already exists");
-      return;
-    }
-    setProfiles([...profiles, name]);
-    setActiveProfile(name);
-    setNewProfileName("");
-  };
-
-  const handleDeleteProfile = () => {
-    if (activeProfile === "Default") return;
-    if (confirm(`Are you sure you want to delete profile "${activeProfile}"?`)) {
-      const entryKey = `profile:${activeProfile}:solarEntries`;
-      const cycleKey = `profile:${activeProfile}:billingCycles`;
-      const rateKey = `profile:${activeProfile}:municipalRates`;
-
-      localStorage.removeItem(entryKey);
-      localStorage.removeItem(cycleKey);
-      localStorage.removeItem(rateKey);
-
-      const newProfiles = profiles.filter((p) => p !== activeProfile);
-      setProfiles(newProfiles);
-      setActiveProfile("Default");
-    }
-  };
-
-  const handleAddDailyEntry = (e: React.FormEvent) => {
+  const handleAddDailyEntry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
       !dailyDate ||
@@ -266,6 +209,7 @@ export default function Index() {
       kWh: parseFloat(dailyKWh),
     };
 
+    // Optimistically update local state
     const existingIndex = entries.findIndex((e) => e.date === dailyDate);
     if (existingIndex >= 0) {
       const updated = [...entries];
@@ -279,13 +223,42 @@ export default function Index() {
 
     setDailyKWh("");
     setDailyDate(formatDate(new Date()));
+
+    // Save to database
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      await apiUpsertEntry(newEntry);
+      setIsOnline(true);
+    } catch (error) {
+      console.error("Failed to save entry to database:", error);
+      setSyncError(error instanceof Error ? error.message : "Failed to save entry");
+      setIsOnline(false);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
-  const handleDeleteEntry = (date: string) => {
+  const handleDeleteEntry = async (date: string) => {
+    // Optimistically update local state
     setEntries(entries.filter((e) => e.date !== date));
+
+    // Delete from database
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      await apiDeleteEntry(date);
+      setIsOnline(true);
+    } catch (error) {
+      console.error("Failed to delete entry from database:", error);
+      setSyncError(error instanceof Error ? error.message : "Failed to delete entry");
+      setIsOnline(false);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
-  const handleAddBillingCycle = (e: React.FormEvent) => {
+  const handleAddBillingCycle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
       !billingMonth ||
@@ -297,33 +270,48 @@ export default function Index() {
       return;
     }
 
+    let cycleToSave: BillingCycle;
+
     if (editingBillingCycleId) {
+      cycleToSave = {
+        id: editingBillingCycleId,
+        month: billingMonth,
+        startDate: billingStart,
+        endDate: billingEnd,
+      };
       const updated = billingCycles.map((c) =>
-        c.id === editingBillingCycleId
-          ? {
-              ...c,
-              month: billingMonth,
-              startDate: billingStart,
-              endDate: billingEnd,
-            }
-          : c,
+        c.id === editingBillingCycleId ? cycleToSave : c,
       );
       setBillingCycles(updated);
       setEditingBillingCycleId(null);
     } else {
-      const newCycle: BillingCycle = {
+      cycleToSave = {
         id: `${Date.now()}`,
         month: billingMonth,
         startDate: billingStart,
         endDate: billingEnd,
       };
 
-      setBillingCycles([newCycle, ...billingCycles]);
+      setBillingCycles([cycleToSave, ...billingCycles]);
     }
 
     setBillingMonth(formatDate(new Date()).slice(0, 7));
     setBillingStart(formatDate(new Date()));
     setBillingEnd(formatDate(new Date()));
+
+    // Save to database
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      await apiUpsertBillingCycle(cycleToSave);
+      setIsOnline(true);
+    } catch (error) {
+      console.error("Failed to save billing cycle to database:", error);
+      setSyncError(error instanceof Error ? error.message : "Failed to save billing cycle");
+      setIsOnline(false);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleEditBillingCycle = (cycle: BillingCycle) => {
@@ -391,7 +379,24 @@ export default function Index() {
     }
 
     setBillingCycles([...newCycles, ...billingCycles]);
-    alert(`Imported ${newCycles.length} billing cycles`);
+
+    // Save to database
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      for (const cycle of newCycles) {
+        await apiUpsertBillingCycle(cycle);
+      }
+      setIsOnline(true);
+      alert(`Imported ${newCycles.length} billing cycles`);
+    } catch (error) {
+      console.error("Failed to save imported billing cycles to database:", error);
+      setSyncError(error instanceof Error ? error.message : "Failed to save imported data");
+      setIsOnline(false);
+      alert(`Imported ${newCycles.length} billing cycles locally, but failed to sync to database`);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const downloadBillingCyclesExample = () => {
@@ -416,11 +421,26 @@ export default function Index() {
     document.body.removeChild(link);
   };
 
-  const handleDeleteBillingCycle = (id: string) => {
+  const handleDeleteBillingCycle = async (id: string) => {
+    // Optimistically update local state
     setBillingCycles(billingCycles.filter((c) => c.id !== id));
+
+    // Delete from database
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      await apiDeleteBillingCycle(id);
+      setIsOnline(true);
+    } catch (error) {
+      console.error("Failed to delete billing cycle from database:", error);
+      setSyncError(error instanceof Error ? error.message : "Failed to delete billing cycle");
+      setIsOnline(false);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
-  const handleAddMunicipalRate = (e: React.FormEvent) => {
+  const handleAddMunicipalRate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rateTier || !rateMaxKWh || !ratePerKWh || !rateStartDate) {
       alert("Please fill in all rate fields");
@@ -441,18 +461,19 @@ export default function Index() {
       return;
     }
 
+    let rateToSave: MunicipalRate;
+
     if (editingRateId) {
+      rateToSave = {
+        id: editingRateId,
+        tier,
+        maxKWh,
+        ratePerKWh: perKWh,
+        startDate: rateStartDate,
+        endDate: rateEndDate || undefined,
+      };
       const updated = municipalRates.map((r) =>
-        r.id === editingRateId
-          ? {
-              ...r,
-              tier,
-              maxKWh,
-              ratePerKWh: perKWh,
-              startDate: rateStartDate,
-              endDate: rateEndDate || undefined,
-            }
-          : r,
+        r.id === editingRateId ? rateToSave : r,
       );
       setMunicipalRates(
         updated.sort((a, b) => {
@@ -464,7 +485,7 @@ export default function Index() {
       );
       setEditingRateId(null);
     } else {
-      const newRate: MunicipalRate = {
+      rateToSave = {
         id: `${Date.now()}`,
         tier,
         maxKWh,
@@ -474,7 +495,7 @@ export default function Index() {
       };
 
       setMunicipalRates(
-        [...municipalRates, newRate].sort((a, b) => {
+        [...municipalRates, rateToSave].sort((a, b) => {
           if (a.startDate !== b.startDate) {
             return b.startDate.localeCompare(a.startDate);
           }
@@ -488,10 +509,39 @@ export default function Index() {
     setRatePerKWh("");
     setRateStartDate(formatDate(new Date()));
     setRateEndDate("");
+
+    // Save to database
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      await apiUpsertMunicipalRate(rateToSave);
+      setIsOnline(true);
+    } catch (error) {
+      console.error("Failed to save municipal rate to database:", error);
+      setSyncError(error instanceof Error ? error.message : "Failed to save rate");
+      setIsOnline(false);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
-  const handleDeleteMunicipalRate = (id: string) => {
+  const handleDeleteMunicipalRate = async (id: string) => {
+    // Optimistically update local state
     setMunicipalRates(municipalRates.filter((r) => r.id !== id));
+
+    // Delete from database
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      await apiDeleteMunicipalRate(id);
+      setIsOnline(true);
+    } catch (error) {
+      console.error("Failed to delete municipal rate from database:", error);
+      setSyncError(error instanceof Error ? error.message : "Failed to delete rate");
+      setIsOnline(false);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleEditMunicipalRate = (rate: MunicipalRate) => {
@@ -595,14 +645,29 @@ export default function Index() {
     document.body.removeChild(link);
   };
 
-  const handleUpdateGridUsage = (cycleId: string, gridKWh: string) => {
+  const handleUpdateGridUsage = async (cycleId: string, gridKWh: string) => {
     const cycle = billingCycles.find((c) => c.id === cycleId);
     if (cycle) {
       const value = gridKWh === "" ? undefined : parseFloat(gridKWh);
+      const updatedCycle = { ...cycle, actualGridKWh: value };
       const updated = billingCycles.map((c) =>
-        c.id === cycleId ? { ...c, actualGridKWh: value } : c,
+        c.id === cycleId ? updatedCycle : c,
       );
       setBillingCycles(updated);
+
+      // Save to database
+      setIsSyncing(true);
+      setSyncError(null);
+      try {
+        await apiUpsertBillingCycle(updatedCycle);
+        setIsOnline(true);
+      } catch (error) {
+        console.error("Failed to update grid usage in database:", error);
+        setSyncError(error instanceof Error ? error.message : "Failed to update grid usage");
+        setIsOnline(false);
+      } finally {
+        setIsSyncing(false);
+      }
     }
     setGridUsageInput({ ...gridUsageInput, [cycleId]: gridKWh });
   };
@@ -637,11 +702,29 @@ export default function Index() {
     return totalGridUsage / previousMonthCycles.length;
   };
 
-  const handleUpdateAppliedRate = (cycleId: string, rateId: string) => {
-    const updated = billingCycles.map((c) =>
-      c.id === cycleId ? { ...c, appliedRateId: rateId || undefined } : c,
-    );
-    setBillingCycles(updated);
+  const handleUpdateAppliedRate = async (cycleId: string, rateId: string) => {
+    const cycle = billingCycles.find((c) => c.id === cycleId);
+    if (cycle) {
+      const updatedCycle = { ...cycle, appliedRateId: rateId || undefined };
+      const updated = billingCycles.map((c) =>
+        c.id === cycleId ? updatedCycle : c,
+      );
+      setBillingCycles(updated);
+
+      // Save to database
+      setIsSyncing(true);
+      setSyncError(null);
+      try {
+        await apiUpsertBillingCycle(updatedCycle);
+        setIsOnline(true);
+      } catch (error) {
+        console.error("Failed to update applied rate in database:", error);
+        setSyncError(error instanceof Error ? error.message : "Failed to update applied rate");
+        setIsOnline(false);
+      } finally {
+        setIsSyncing(false);
+      }
+    }
   };
 
   const getEffectiveRates = (cycle: BillingCycle): MunicipalRate[] => {
@@ -654,7 +737,7 @@ export default function Index() {
     return getApplicableRates(cycle.startDate, municipalRates);
   };
 
-  const handleImportCSV = (e: React.FormEvent) => {
+  const handleImportCSV = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!importData.trim() || !importStartDate) {
       alert("Please enter data and select a start date");
@@ -708,7 +791,24 @@ export default function Index() {
     setImportMode(false);
     setImportData("");
     setImportStartDate(formatDate(new Date()));
-    alert(`Imported ${newEntries.length} solar generation records`);
+
+    // Save to database
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      for (const entry of newEntries) {
+        await apiUpsertEntry(entry);
+      }
+      setIsOnline(true);
+      alert(`Imported ${newEntries.length} solar generation records`);
+    } catch (error) {
+      console.error("Failed to save imported entries to database:", error);
+      setSyncError(error instanceof Error ? error.message : "Failed to save imported data");
+      setIsOnline(false);
+      alert(`Imported ${newEntries.length} records locally, but failed to sync to database`);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleImportCSVFile = async (file: File) => {
@@ -759,7 +859,24 @@ export default function Index() {
 
     merged.sort((a, b) => a.date.localeCompare(b.date));
     setEntries(merged);
-    alert(`Imported ${newEntries.length} solar generation records from file`);
+
+    // Save to database
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      for (const entry of newEntries) {
+        await apiUpsertEntry(entry);
+      }
+      setIsOnline(true);
+      alert(`Imported ${newEntries.length} solar generation records from file`);
+    } catch (error) {
+      console.error("Failed to save imported entries to database:", error);
+      setSyncError(error instanceof Error ? error.message : "Failed to save imported data");
+      setIsOnline(false);
+      alert(`Imported ${newEntries.length} records locally, but failed to sync to database`);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const monthlyData = calculateMonthlyData(entries);
@@ -1014,7 +1131,7 @@ export default function Index() {
     setRangeEntries({ ...rangeEntries, [date]: value });
   };
 
-  const handleSubmitRangeEntries = (e: React.FormEvent) => {
+  const handleSubmitRangeEntries = async (e: React.FormEvent) => {
     e.preventDefault();
     const newEntries: DailyEntry[] = [];
 
@@ -1046,6 +1163,22 @@ export default function Index() {
     setRangeStart(formatDate(new Date()));
     setRangeEnd(formatDate(new Date()));
     setRangeEntries({});
+
+    // Save to database
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      for (const entry of newEntries) {
+        await apiUpsertEntry(entry);
+      }
+      setIsOnline(true);
+    } catch (error) {
+      console.error("Failed to save range entries to database:", error);
+      setSyncError(error instanceof Error ? error.message : "Failed to save entries");
+      setIsOnline(false);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleCancelRangeMode = () => {
@@ -1056,6 +1189,18 @@ export default function Index() {
   };
 
   const rangeDates = rangeMode ? getDatesBetween(rangeStart, rangeEnd) : [];
+
+  // Show loading state while fetching initial data
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-solar-sky/10 via-background to-solar-energy/5">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-solar-sun" />
+          <p className="text-muted-foreground">Loading your solar data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-solar-sky/10 via-background to-solar-energy/5">
@@ -1076,11 +1221,35 @@ export default function Index() {
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Total Entries</p>
-              <p className="text-2xl font-bold text-solar-energy">
-                {entries.length}
-              </p>
+            <div className="flex items-center gap-4">
+              {/* Sync status indicator */}
+              <div className="flex items-center gap-2">
+                {isSyncing ? (
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="hidden sm:inline">Saving...</span>
+                  </div>
+                ) : isOnline ? (
+                  <div className="flex items-center gap-1.5 text-sm text-green-600">
+                    <Cloud className="h-4 w-4" />
+                    <span className="hidden sm:inline">Synced</span>
+                  </div>
+                ) : (
+                  <div
+                    className="flex items-center gap-1.5 text-sm text-yellow-600"
+                    title={syncError || "Offline mode"}
+                  >
+                    <CloudOff className="h-4 w-4" />
+                    <span className="hidden sm:inline">Offline</span>
+                  </div>
+                )}
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Total Entries</p>
+                <p className="text-2xl font-bold text-solar-energy">
+                  {entries.length}
+                </p>
+              </div>
             </div>
           </div>
         </div>
