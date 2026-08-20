@@ -341,6 +341,7 @@ export default function Index() {
           const month = columns[0];
           const startDate = columns[1];
           const endDate = columns[2];
+          const actualGridKWhStr = columns[3];
 
           if (month && startDate && endDate) {
             const monthRegex = /^\d{4}-\d{2}$/;
@@ -351,11 +352,17 @@ export default function Index() {
               dateRegex.test(startDate) &&
               dateRegex.test(endDate)
             ) {
+              const actualGridKWh =
+                actualGridKWhStr && !isNaN(parseFloat(actualGridKWhStr))
+                  ? parseFloat(actualGridKWhStr)
+                  : undefined;
+
               const cycle: BillingCycle = {
                 id: `${Date.now()}-${Math.random()}`,
                 month,
                 startDate,
                 endDate,
+                actualGridKWh,
               };
               newCycles.push(cycle);
             }
@@ -394,10 +401,10 @@ export default function Index() {
 
   const downloadBillingCyclesExample = () => {
     const exampleData = [
-      "Month,Start Date,End Date",
-      "2025-01,2025-01-01,2025-02-15",
-      "2025-02,2025-02-16,2025-03-15",
-      "2025-03,2025-03-16,2025-04-15",
+      "Month,Start Date,End Date,Actual Grid Usage (optional)",
+      "2025-01,2025-01-01,2025-02-15,120.5",
+      "2025-02,2025-02-16,2025-03-15,",
+      "2025-03,2025-03-16,2025-04-15,145.2",
     ];
 
     const csvContent = exampleData.join("\n");
@@ -1834,7 +1841,7 @@ export default function Index() {
                     />
                     <p className="text-xs text-muted-foreground mt-1">
                       Format: Month (YYYY-MM), Start Date (YYYY-MM-DD), End Date
-                      (YYYY-MM-DD)
+                      (YYYY-MM-DD), Actual Grid Usage (kWh - optional)
                     </p>
                     <Button
                       onClick={downloadBillingCyclesExample}
@@ -2198,7 +2205,9 @@ export default function Index() {
                   </CardContent>
                 </Card>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {billingCycles.map((cycle) => {
+                  {[...billingCycles]
+                    .sort((a, b) => b.month.localeCompare(a.month))
+                    .map((cycle) => {
                     const billingData = calculateBillingData(
                       entries,
                       cycle.startDate,
@@ -2809,6 +2818,75 @@ export default function Index() {
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-solar-sky" />
+                  Data Profiles
+                </CardTitle>
+                <CardDescription>
+                  Switch between different sets of solar data (e.g. different
+                  houses or users)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium block">
+                      Active Profile
+                    </label>
+                    <div className="flex gap-2">
+                      <Select
+                        value={activeProfile}
+                        onValueChange={setActiveProfile}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select Profile" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {profiles.map((p) => (
+                            <SelectItem key={p} value={p}>
+                              {p}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {activeProfile !== "Default" && (
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={handleDeleteProfile}
+                          title="Delete Profile"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium block">
+                      Create New Profile
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Profile Name"
+                        value={newProfileName}
+                        onChange={(e) => setNewProfileName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleAddProfile();
+                        }}
+                      />
+                      <Button onClick={handleAddProfile} className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        Create
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {(entries.length > 0 ||
               billingCycles.length > 0 ||
               municipalRates.length > 0) && (
@@ -3030,7 +3108,9 @@ export default function Index() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {billingCycles.map((cycle) => {
+                    {[...billingCycles]
+                      .sort((a, b) => b.month.localeCompare(a.month))
+                      .map((cycle) => {
                       const billingData = calculateBillingData(
                         entries,
                         cycle.startDate,
